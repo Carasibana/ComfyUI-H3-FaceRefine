@@ -1,0 +1,29 @@
+[project]
+name = "comfyui-h3-facerefine"
+description = "Refine and improve the quality of small faces in MiniMax H3 video: per-frame face tracking, normalised crops, AV-latent injection and feathered stitch-back."
+version = "1.0.0"
+license = { file = "LICENSE" }
+requires-python = ">=3.9"
+readme = "README.md"
+keywords = ["comfyui", "minimax-h3", "video", "face", "detailer", "upscale"]
+classifiers = [
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "ultralytics",
+    "scipy",
+    "insightface",
+]
+# onnxruntime is deliberately NOT pinned here. insightface pulls the runtime it needs,
+# and declaring onnxruntime-gpu alongside an existing onnxruntime makes the CPU-only
+# package shadow it - CUDAExecutionProvider then disappears and identity matching
+# silently drops to CPU. Users who want GPU should install one variant, not both.
+
+[project.urls]
+Repository = "https://github.com/Carasibana/ComfyUI-H3-FaceRefine"
+"Bug Tracker" = "https://github.com/Carasibana/ComfyUI-H3-FaceRefine/issues"
+
+[tool.comfy]
+PublisherId = "carasibana"
+DisplayName = "ComfyUI-H3-FaceRefine"
+Icon = "https://raw.githubusercontent.com/Carasibana/ComfyUI-H3-FaceRefine/main/assets/icon-h3-facerefine.svg"

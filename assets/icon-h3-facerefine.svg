@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400" role="img" aria-label="H3 Face Refine">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#242a3b"/>
+      <stop offset="1" stop-color="#141824"/>
+    </linearGradient>
+    <linearGradient id="face" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#b9c6dc"/>
+    </linearGradient>
+    <clipPath id="plate">
+      <rect x="0" y="0" width="400" height="400" rx="84"/>
+    </clipPath>
+  </defs>
+
+  <rect x="0" y="0" width="400" height="400" rx="84" fill="url(#bg)"/>
+
+  <!-- the wide shot: a second, small, low-detail head sitting off to the side, which is
+       the problem this pack solves. Dim, so it never competes with the main glyph. -->
+  <g clip-path="url(#plate)" fill="#39425c">
+    <circle cx="63" cy="316" r="15"/>
+    <path d="M35 372c0-18 12-30 28-30s28 12 28 30z"/>
+  </g>
+
+  <!-- crop reticle: the face is selected and blown up -->
+  <g fill="none" stroke="#4fc3f7" stroke-width="17" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M96 141V113a17 17 0 0 1 17-17h28"/>
+    <path d="M259 96h28a17 17 0 0 1 17 17v28"/>
+    <path d="M304 259v28a17 17 0 0 1-17 17h-28"/>
+    <path d="M141 304h-28a17 17 0 0 1-17-17v-28"/>
+  </g>
+
+  <!-- refined face, large inside the crop -->
+  <g fill="url(#face)">
+    <circle cx="200" cy="171" r="45"/>
+    <path d="M140 288c0-38 27-64 60-64s60 26 60 64z"/>
+  </g>
+
+  <!-- added detail -->
+  <g fill="#ffd166">
+    <path d="M320 60l7 19 19 7-19 7-7 19-7-19-19-7 19-7z"/>
+    <path d="M356 116l4.5 12 12 4.5-12 4.5-4.5 12-4.5-12-12-4.5 12-4.5z"/>
+  </g>
+</svg>
