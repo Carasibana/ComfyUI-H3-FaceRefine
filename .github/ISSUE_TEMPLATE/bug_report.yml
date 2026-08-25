@@ -1,0 +1,123 @@
+name: Bug report
+description: Something in this pack is broken, errors out, or produces a demonstrably wrong result.
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **This pack refines faces in a clip you have already generated.** It is a second pass over an
+        existing video file, not a generator.
+
+        Questions ("how do I…", "what does this node do?") and suggestions ("please add…", "use
+        library X instead") are not bugs. Post those in
+        [Discussions](https://github.com/Carasibana/ComfyUI-H3-FaceRefine/discussions).
+
+        Reports that leave the fields below empty or filled with "n/a" will be closed without
+        investigation. This is a one-person project — the information below is what makes a fix
+        possible at all.
+
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Pre-flight
+      description: Every one of these must be true before filing.
+      options:
+        - label: I read the setup steps in the README and followed them.
+          required: true
+        - label: I searched the existing issues, open and closed, and this is not a duplicate.
+          required: true
+        - label: This is a defect in the pack — not a question, a feature request, or a request to switch to a different library.
+          required: true
+        - label: "`length` on the H3 node equals my clip's exact frame count, and that count sits on H3's 17k+5 grid (5, 22, 39 … 226, 362)."
+          required: true
+        - label: The crop canvas and the H3 node's width/height match each other.
+          required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened, and what did you expect instead?
+      description: Describe the actual result and the expected result as two separate statements. "It doesn't work" is not a description.
+      placeholder: |
+        What I got:  the stitched output is identical to the input — the face is never modified.
+        What I expected:  the face region to change after the sampler pass.
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: The exact sequence, starting from which example workflow you loaded.
+      placeholder: |
+        1. Loaded example_workflows/H3_Face_Refine.json
+        2. Pointed the Source clip loader at a 362-frame 1280x720 mp4
+        3. Set length to 362, left every other value at the shipped default
+        4. Queued once — output written, face unchanged
+    validations:
+      required: true
+
+  - type: textarea
+    id: workflow
+    attributes:
+      label: Your workflow
+      description: |
+        Drag the actual file into this box — the `.json` export, or the output PNG/MP4 with the
+        workflow embedded. A screenshot of the canvas is not a workflow and cannot be inspected.
+      placeholder: Drag and drop the file here.
+    validations:
+      required: true
+
+  - type: textarea
+    id: node-reports
+    attributes:
+      label: Node reports
+      description: |
+        Paste the `report` output from **2. Track + crop (per-frame)** and from **4. Inject real
+        video -> img2img**. Both also print to the console, prefixed `[H3FaceRefine]`. These lines
+        carry the face heights, magnification, dropout runs and any temporal-mismatch warning —
+        most reported problems are diagnosable from them alone.
+      render: shell
+      placeholder: |
+        [H3FaceRefine] canvas_mode=auto_capped_768: 512x512 -> 736x736 (largest crop 720px)
+        [H3FaceRefine] frames=311  face=311 (100%)  body-fallback=0  interpolated=0
+        [H3FaceRefine] face height  min=142px  mean=326px  max=444px
+        [H3FaceRefine] magnification into 736x736: min=1.02x  mean=1.13x  max=1.72x
+    validations:
+      required: true
+
+  - type: textarea
+    id: console
+    attributes:
+      label: Console output
+      description: The full terminal output for the run, including the complete traceback if it errored. Not a cropped screenshot of it.
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment, models and clip
+      description: Fill in every line. "Latest" is not a version.
+      value: |
+        Pack version:
+        ComfyUI version:
+        OS:
+        GPU and VRAM:
+        Diffusion model file:
+        Text encoder / CLIP file:
+        LoRA(s) and strength:
+        Detector model (bbox / segm):
+        Clip: WxH, frame count, fps:
+    validations:
+      required: true
+
+  - type: textarea
+    id: visuals
+    attributes:
+      label: Screenshots or clips (optional)
+      description: Input frame, the cropped face, and the final stitched output, where they show the problem.
+    validations:
+      required: false
