@@ -102,6 +102,208 @@ def _best_match(cands: list, ref_emb: np.ndarray):
     return i, sims[i]
 
 
+# ----------------------------------------------------------------------------
+# identity embedding backends
+# ----------------------------------------------------------------------------
+#
+# buffalo_l is ArcFace on photographed faces, and it is reached through InsightFace's
+# OWN detector (SCRFD, trained on WIDER FACE). On illustration that detector fires on
+# nothing, so `embed` returns no candidates at all and identity matching silently
+# degrades to continuity - the failure is invisible rather than wrong. Swapping only the
+# recogniser would not help while the candidates still have to come from SCRFD.
+#
+# So the out-of-domain backends embed THE BOXES THE FACE DETECTOR ALREADY FOUND. The
+# ultralytics model the user picked is the thing that knows where an anime face is, and
+# it is already a node input.
+
+_IDENT_MODES = ["insightface", "clip_vision", "ccip"]
+
+# Context around the face box for the out-of-domain backends. A face detector's box is
+# eyes-to-chin, but hair is most of what distinguishes one illustrated character from
+# another, and both CCIP and CLIP expect a character image rather than a cropped face.
+_IDENT_CROP_FACTOR = 2.0
+_IDENT_CROP_PX = 384
+
+
+def _ident_crop(frame: torch.Tensor, box, out: int = _IDENT_CROP_PX) -> torch.Tensor:
+    """Square, context-padded crop around one face box. frame [1,H,W,C] -> [1,out,out,3]."""
+    _, H, W, _ = frame.shape
+    x0, y0, x1, y1 = float(box[0]), float(box[1]), float(box[2]), float(box[3])
+    cx, cy = (x0 + x1) / 2.0, (y0 + y1) / 2.0
+    side = min(max(x1 - x0, y1 - y0) * _IDENT_CROP_FACTOR, float(min(W, H)))
+    side = max(side, 8.0)
+    x = min(max(cx - side / 2.0, 0.0), max(0.0, W - side))
+    y = min(max(cy - side / 2.0, 0.0), max(0.0, H - side))
+    return _affine_crop(frame, (x, y, side, side), out, out)
+
+
+def _unit_mean(feats) -> np.ndarray:
+    a = np.mean(np.stack(feats), axis=0)
+    n = np.linalg.norm(a)
+    return a / n if n > 0 else a
+
+
+class _InsightFaceEmbedder:
+    """ArcFace via InsightFace, on InsightFace's own aligned detections.
+
+    Left exactly as it was: ArcFace wants the 5-point landmark alignment that app.get()
+    performs, and feeding it a raw box crop measurably degrades it.
+    """
+
+    name = "insightface"
+    default_threshold = 0.28
+    note = ""
+
+    def __init__(self):
+        self.app = _face_recogniser()
+
+    def embed(self, frame, boxes):
+        return _embed_faces(self.app, _to_bgr_u8(frame[0]))
+
+    def embed_reference(self, frame, model, confidence):
+        cands = _embed_faces(self.app, _to_bgr_u8(frame[0]))
+        if not cands:
+            return None
+        j = max(range(len(cands)), key=lambda k: cands[k][0][3] - cands[k][0][1])
+        return cands[j][1]
+
+    def best_match(self, cands, ref):
+        return _best_match(cands, ref)
+
+    def merge(self, feats):
+        return _unit_mean(feats)
+
+
+class _CropEmbedder:
+    """Embeds the face detector's own boxes. Base for the out-of-domain backends."""
+
+    def _features(self, crops: torch.Tensor) -> list:
+        raise NotImplementedError
+
+    def embed(self, frame, boxes):
+        if not boxes:
+            return []
+        crops = torch.cat([_ident_crop(frame, b) for b in boxes], 0)
+        feats = self._features(crops)
+        return [(list(b), f) for b, f in zip(boxes, feats) if f is not None]
+
+    def embed_reference(self, frame, model, confidence):
+        # Locate the face in the reference with the SAME detector the clip uses. If it
+        # finds nothing, embed the whole image - which is what CCIP is trained on anyway.
+        boxes = []
+        try:
+            res = model.predict(_to_bgr_u8(frame[0]), conf=confidence, verbose=False)[0]
+            boxes = res.boxes.xyxy.tolist() if len(res.boxes) else []
+        except Exception:
+            boxes = []
+        if boxes:
+            crop = _ident_crop(frame, max(boxes, key=lambda q: q[3] - q[1]))
+        else:
+            _, H, W, _ = frame.shape
+            crop = _affine_crop(frame, (0.0, 0.0, float(W), float(H)),
+                                _IDENT_CROP_PX, _IDENT_CROP_PX)
+        feats = self._features(crop)
+        return feats[0] if feats else None
+
+    def merge(self, feats):
+        return _unit_mean(feats)
+
+    def best_match(self, cands, ref):
+        return _best_match(cands, ref)
+
+
+class _ClipVisionEmbedder(_CropEmbedder):
+    """ComfyUI's own CLIP vision, wired in from a CLIPVisionLoader. No new dependency,
+    and it is domain-agnostic - anime, 3D, stylised, puppets.
+
+    It describes APPEARANCE rather than identity, so its similarities sit high and close
+    together; the useful threshold is much higher than ArcFace's and is scene-dependent.
+    The report prints the scores it actually saw so the number can be set from evidence.
+    """
+
+    name = "clip_vision"
+    default_threshold = 0.80
+    note = ""
+
+    def __init__(self, clip_vision):
+        if clip_vision is None:
+            raise ValueError(
+                "identity_model='clip_vision' needs a CLIP_VISION model connected to "
+                "identity_clip_vision. Add a CLIPVisionLoader node and wire it in."
+            )
+        self.cv = clip_vision
+
+    def _features(self, crops):
+        out = self.cv.encode_image(crops)
+        emb = getattr(out, "image_embeds", None)
+        if emb is None:
+            emb = out["image_embeds"]
+        e = np.asarray(emb.float().cpu().numpy(), dtype=np.float32)
+        e = e.reshape(e.shape[0], -1)
+        n = np.linalg.norm(e, axis=-1, keepdims=True)
+        return list(e / np.maximum(n, 1e-8))
+
+
+class _CCIPEmbedder(_CropEmbedder):
+    """CCIP - "is this the same anime character?" - the illustration counterpart of
+    ArcFace. Deliberately NOT a declared dependency of this pack: dghs-imgutils pins
+    numpy<2 and pulls opencv-contrib-python, which shadows the OpenCV build ComfyUI
+    ships in exactly the way onnxruntime-gpu shadows onnxruntime. Imported only when
+    this backend is actually selected.
+
+    Its distance comes from a learned metric model, not a dot product, so it cannot
+    share the cosine path. The score below is that distance mapped so that the model's
+    own published threshold lands on 0.5: higher is more alike, 0.5 is the operating
+    point CCIP itself recommends, and raising it makes matching stricter.
+    """
+
+    name = "ccip"
+    default_threshold = 0.5
+
+    def __init__(self):
+        try:
+            from imgutils.metrics import (ccip_batch_differences,
+                                          ccip_batch_extract_features,
+                                          ccip_default_threshold, ccip_merge)
+        except ImportError as exc:
+            raise ImportError(
+                "identity_model='ccip' needs dghs-imgutils, which this pack does not "
+                "install for you (it pins numpy<2 and pulls opencv-contrib-python). "
+                "Install it yourself with:  pip install dghs-imgutils\n"
+                f"({exc})"
+            ) from exc
+        self._extract = ccip_batch_extract_features
+        self._diffs = ccip_batch_differences
+        self._merge = ccip_merge
+        self._t = float(ccip_default_threshold())
+        self.note = f"ccip native distance threshold {self._t:.3f} -> score 0.5"
+
+    def _features(self, crops):
+        from PIL import Image
+
+        arr = (crops[..., :3].clamp(0, 1).cpu().numpy() * 255.0).astype(np.uint8)
+        return list(self._extract([Image.fromarray(a) for a in arr]))
+
+    def best_match(self, cands, ref):
+        if not cands or ref is None:
+            return None, -1.0
+        d = np.asarray(self._diffs([ref] + [f for _, f in cands]))[0, 1:]
+        sims = 1.0 - d / (2.0 * max(self._t, 1e-6))
+        i = int(np.argmax(sims))
+        return i, float(sims[i])
+
+    def merge(self, feats):
+        return self._merge(list(feats))
+
+
+def _make_embedder(mode: str, clip_vision=None):
+    if mode == "ccip":
+        return _CCIPEmbedder()
+    if mode == "clip_vision":
+        return _ClipVisionEmbedder(clip_vision)
+    return _InsightFaceEmbedder()
+
+
 def _iou(a, b) -> float:
     ix0, iy0 = max(a[0], b[0]), max(a[1], b[1])
     ix1, iy1 = min(a[2], b[2]), min(a[3], b[3])
@@ -118,7 +320,7 @@ def _continuity_cost(box, last):
     return d + abs(sz - last[2]) * 2.0
 
 
-def _build_clip_anchor(app, images, all_boxes, max_samples=24):
+def _build_clip_anchor(emb, images, all_boxes, max_samples=24):
     """Average embedding of the subject, taken from the CLIP ITSELF.
 
     A stylised reference image sits in a different domain from rendered video frames -
@@ -140,16 +342,17 @@ def _build_clip_anchor(app, images, all_boxes, max_samples=24):
         # unambiguous = only one face, or the biggest is clearly the biggest
         if len(heights) > 1 and heights[0] < heights[1] * 1.6:
             continue
-        cands = _embed_faces(app, _to_bgr_u8(images[i]))
+        # only the dominant box needs embedding - the filter above just established
+        # that it is unambiguously the subject
+        top = max(boxes, key=lambda b: b[3] - b[1])
+        cands = emb.embed(images[i:i + 1], [top])
         if not cands:
             continue
         j = max(range(len(cands)), key=lambda k: cands[k][0][3] - cands[k][0][1])
         embs.append(cands[j][1])
     if not embs:
         return None, 0
-    a = np.mean(np.stack(embs), axis=0)
-    n = np.linalg.norm(a)
-    return (a / n if n > 0 else a), len(embs)
+    return emb.merge(embs), len(embs)
 
 
 def _track_continuity(all_boxes, start_frame: int, start_idx: int) -> list[int]:
@@ -177,7 +380,7 @@ def _track_continuity(all_boxes, start_frame: int, start_idx: int) -> list[int]:
     return track
 
 
-def _anchor_from_track(app, images, all_boxes, track, max_samples=24, min_face=32.0):
+def _anchor_from_track(emb, images, all_boxes, track, max_samples=24, min_face=32.0):
     """Average embedding of the TRACKED subject, sampled from frames where the tracked
     box is unambiguous.
 
@@ -203,23 +406,21 @@ def _anchor_from_track(app, images, all_boxes, track, max_samples=24, min_face=3
     step = max(1, len(clean) // max_samples)
     embs = []
     for i in clean[::step][:max_samples]:
-        cands = _embed_faces(app, _to_bgr_u8(images[i]))
+        tb = all_boxes[i][track[i]]
+        cands = emb.embed(images[i:i + 1], [tb])
         if not cands:
             continue
-        tb = all_boxes[i][track[i]]
         j, best = None, 0.0
         for k, (bb, _) in enumerate(cands):
             v = _iou(bb, tb)
             if v > best:
                 best, j = v, k
-        if j is None or best < 0.3:           # insightface found other people, not ours
+        if j is None or best < 0.3:      # the embedder found other people, not ours
             continue
         embs.append(cands[j][1])
     if not embs:
         return None, 0
-    a = np.mean(np.stack(embs), axis=0)
-    n = np.linalg.norm(a)
-    return (a / n if n > 0 else a), len(embs)
+    return emb.merge(embs), len(embs)
 
 
 def _to_bgr_u8(img: torch.Tensor) -> np.ndarray:
@@ -603,11 +804,18 @@ class H3FaceTrackCrop:
                                "where same-domain faces score 0.5-0.7."}),
                 "identity_threshold": ("FLOAT", {"default": 0.28, "min": 0.0, "max": 1.0,
                     "step": 0.01,
-                    "tooltip": "Minimum cosine similarity to accept a face as the reference "
-                               "person. Below this the frame falls back to continuity (nearest "
-                               "to the previous position at a similar size), which is what "
-                               "carries tracking through profiles and partial occlusion where "
-                               "embeddings become unreliable."}),
+                    "tooltip": "Minimum score to accept a face as the reference person. Below "
+                               "this the frame falls back to continuity (nearest to the "
+                               "previous position at a similar size), which is what carries "
+                               "tracking through profiles and partial occlusion where "
+                               "embeddings become unreliable.\n"
+                               "The scale depends on identity_model. 0.28 suits insightface "
+                               "cosine; clip_vision sits much higher (~0.80) because its "
+                               "similarities are compressed; ccip scores 0.5 at its own "
+                               "published operating point.\n"
+                               "SET 0 to use whichever default the chosen model recommends. "
+                               "The report prints the scores actually seen, so it can be tuned "
+                               "from evidence rather than guessed."}),
                 "select": (_SELECT_MODES, {"default": "largest",
                     "tooltip": "How the faces in a frame are RANKED. select_order picks the "
                                "direction and select_index picks one out of the ranking.\n"
@@ -655,6 +863,29 @@ class H3FaceTrackCrop:
                                "at once. Ignored entirely when identity_reference is connected.\n"
                                "Connect face_index_preview to a PreviewImage to see which "
                                "number is who."}),
+                "identity_model": (_IDENT_MODES, {"default": "insightface",
+                    "tooltip": "Which model decides that two faces are the same person.\n"
+                               "insightface: ArcFace/buffalo_l. Photographed human faces. It "
+                               "reaches faces through its OWN detector, which does not fire on "
+                               "illustration - so on anime it finds no candidates at all and "
+                               "tracking quietly falls back to continuity.\n"
+                               "clip_vision: ComfyUI's CLIP vision, wired into "
+                               "identity_clip_vision from a CLIPVisionLoader. No extra install, "
+                               "works on any domain - anime, 3D, stylised - but it describes "
+                               "appearance rather than identity, so two characters with a "
+                               "similar palette can collide.\n"
+                               "ccip: the illustration counterpart of ArcFace, purpose-built "
+                               "for 'same anime character?'. Best on anime. Needs "
+                               "'pip install dghs-imgutils', which this pack deliberately does "
+                               "not install for you - it pins numpy<2 and pulls "
+                               "opencv-contrib-python.\n"
+                               "The last two embed the boxes YOUR detector found, so pair them "
+                               "with an anime face model in the detector slot."}),
+                "identity_clip_vision": ("CLIP_VISION", {
+                    "tooltip": "A CLIP vision model from a CLIPVisionLoader, used only when "
+                               "identity_model is clip_vision. Any of the usual ComfyUI "
+                               "clip_vision checkpoints works; the bigger ViT-L/H models "
+                               "separate characters better than the small ones."}),
             },
         }
 
@@ -677,7 +908,8 @@ class H3FaceTrackCrop:
             canvas_mode, smooth_window, size_smooth_window, smooth_method, size_mode,
             select="largest", fallback_detector="none", fallback_head_frac=0.5,
             identity_reference=None, identity_threshold=0.28, identity_track=True,
-            select_order="descending", select_index=0):
+            select_order="descending", select_index=0, identity_model="insightface",
+            identity_clip_vision=None):
         model = _load_detector(detector)
         B, H, W, _ = images.shape
 
@@ -734,19 +966,21 @@ class H3FaceTrackCrop:
         # Without one, "largest" has no idea WHO it is following: it takes the biggest box
         # each frame, so in a crowd it hops subject whenever the framing changes. Observed
         # in testing: a single clip switched subject 4 times.
-        ref_emb, app = None, None
+        ref_emb, embedder = None, None
+        ident_note, ident_scores = "", []
+        ident_threshold = float(identity_threshold)
         n_ident, n_cont, n_conflict = 0, 0, 0
         multi = len(all_boxes[0]) > 1 or (selection_leads and max_faces > 1)
 
         if identity_track and (multi or identity_reference is not None):
             try:
-                app = _face_recogniser()
+                embedder = _make_embedder(identity_model, identity_clip_vision)
+                if ident_threshold <= 0.0:
+                    ident_threshold = float(embedder.default_threshold)
                 if identity_reference is not None:
-                    cands = _embed_faces(app, _to_bgr_u8(identity_reference[0]))
-                    if cands:
-                        j = max(range(len(cands)),
-                                key=lambda k: cands[k][0][3] - cands[k][0][1])
-                        ref_emb = cands[j][1]
+                    ref_emb = embedder.embed_reference(identity_reference[:1], model,
+                                                       confidence)
+                    if ref_emb is not None:
                         print("[H3FaceRefine] identity anchor from the supplied reference")
                 if ref_emb is None and selection_leads:
                     # Anchor on the SELECTED subject, followed by continuity. Falling back
@@ -756,18 +990,24 @@ class H3FaceTrackCrop:
                     seed = _rank_boxes(all_boxes[index_lock], all_confs[index_lock], W, H,
                                        select, select_order)[select_index]
                     ref_emb, used = _anchor_from_track(
-                        app, images, all_boxes,
+                        embedder, images, all_boxes,
                         _track_continuity(all_boxes, index_lock, seed))
                     print(f"[H3FaceRefine] identity anchor built from the selected subject "
                           f"({used} unambiguous frames)" if ref_emb is not None else
                           "[H3FaceRefine] no clean frames to anchor the selected subject - "
                           "tracking by continuity alone")
                 elif ref_emb is None:
-                    ref_emb, used = _build_clip_anchor(app, images, all_boxes)
+                    ref_emb, used = _build_clip_anchor(embedder, images, all_boxes)
                     if ref_emb is not None:
                         print(f"[H3FaceRefine] identity anchor built from the clip itself "
                               f"({used} unambiguous frames)")
             except Exception as exc:
+                # Identity is an assist, not a requirement - a missing backend must not
+                # kill a run that continuity can still track. Surfaced in the report as
+                # well as stdout, because a silent downgrade is the thing that wastes an
+                # evening on a crowd scene.
+                embedder, ref_emb = None, None
+                ident_note = f"{identity_model} unavailable, tracking by continuity: {exc}"
                 print(f"[H3FaceRefine] identity matching unavailable ({exc})")
 
         # Waiting for a frame that contains select_index only makes sense when the RANKING
@@ -798,9 +1038,10 @@ class H3FaceTrackCrop:
             elif last is None:
                 # first resolved frame: identity if we have it, else the ranking rule
                 if ref_emb is not None and not selection_leads:
-                    cands = _embed_faces(app, _to_bgr_u8(images[i]))
-                    k, _ = _best_match(cands, ref_emb)
+                    cands = embedder.embed(images[i:i + 1], boxes)
+                    k, score = embedder.best_match(cands, ref_emb)
                     if k is not None:
+                        ident_scores.append(score)
                         b = cands[k][0]
                         n_ident += 1
                 if b is None:
@@ -825,10 +1066,12 @@ class H3FaceTrackCrop:
                 if conflict and ref_emb is not None:
                     n_conflict += 1
                     near = [q for q in boxes if _continuity_cost(q, last) < c0 * 3.0] or boxes
-                    cands = [c for c in _embed_faces(app, _to_bgr_u8(images[i]))
+                    cands = [c for c in embedder.embed(images[i:i + 1], near)
                              if any(_iou(c[0], q) > 0.3 for q in near)]
-                    k, score = _best_match(cands, ref_emb)
-                    if k is not None and score >= identity_threshold:
+                    k, score = embedder.best_match(cands, ref_emb)
+                    if k is not None:
+                        ident_scores.append(score)
+                    if k is not None and score >= ident_threshold:
                         b = cands[k][0]
                         n_ident += 1
                 if b is None:
@@ -1059,6 +1302,37 @@ class H3FaceTrackCrop:
                 f"The higher indices are still selectable."
             )
 
+        # Identity accounting. The scores are printed because identity_threshold means a
+        # different thing per backend, and a number nobody can calibrate is a number
+        # nobody will touch.
+        if ident_note:
+            identline = f"identity: {ident_note}\n"
+        elif embedder is None:
+            identline = "identity: not used (single face, or identity_track off)\n"
+        else:
+            if ident_scores:
+                scores = (f"  scores min={min(ident_scores):.3f} "
+                          f"mean={sum(ident_scores)/len(ident_scores):.3f} "
+                          f"max={max(ident_scores):.3f}")
+            elif ref_emb is None:
+                scores = "  (no anchor could be built - tracked by continuity alone)"
+            else:
+                scores = "  (anchor built, never consulted - continuity was unambiguous)"
+            identline = (
+                f"identity: {embedder.name}  threshold={ident_threshold:.3f}"
+                f"{' (model default)' if identity_threshold <= 0.0 else ''}"
+                f"{'  [' + embedder.note + ']' if getattr(embedder, 'note', '') else ''}"
+                f"{scores}\n"
+            )
+
+        identwarn = ""
+        if ident_scores and min(ident_scores) >= ident_threshold:
+            identwarn = (
+                f"\n!! every identity score cleared identity_threshold={ident_threshold:.3f}, "
+                f"so it rejected nothing. Lowest seen was {min(ident_scores):.3f}. Raise it, or "
+                f"set identity_threshold to 0 for {embedder.name}'s own default."
+            )
+
         box_jit = float(np.mean([abs(boxes[i][0] - boxes[i-1][0]) + abs(boxes[i][1] - boxes[i-1][1])
                                  for i in range(1, len(boxes))])) if len(boxes) > 1 else 0.0
         report = (
@@ -1069,6 +1343,7 @@ class H3FaceTrackCrop:
             f"faces: max {max_faces} in one frame; face_index_preview has {n_cards} card(s)\n"
             f"tracking: {n_cont} by continuity, {n_conflict} ambiguous "
             f"({n_ident} resolved by face identity)\n"
+            f"{identline}"
             f"frames={B}  face={found} ({found/B*100:.0f}%)  "
             f"body-fallback={int(via_body.sum())}  interpolated={B-int(known.sum())}\n"
             f"face height  min={sz.min():.0f}px  mean={sz.mean():.0f}px  max={sz.max():.0f}px\n"
@@ -1081,7 +1356,7 @@ class H3FaceTrackCrop:
             f"box movement {box_jit:.2f} px/frame (sub-pixel float boxes - no integer rounding)\n"
             f"dropout runs: {len(runs)}  longest={longest_gap} frames ({longest_gap/24.0:.1f}s "
             f"at 24fps)  -> composite fades out across these"
-            f"{idxwarn}{gapwarn}{warn}"
+            f"{identwarn}{idxwarn}{gapwarn}{warn}"
         )
         # Always print. The report is also returned as an output, but that output is
         # usually left unconnected, and then a run gives no account of how it tracked -

@@ -54,7 +54,7 @@ Restart ComfyUI. The nodes appear under **MiniMax H3/Face Refine**.
 | | |
 |---|---|
 | ComfyUI with MiniMax H3 support | H3's own nodes are **core** (`comfy_extras/nodes_minimax_h3.py`), not an add-on, you just need a build recent enough to have them |
-| a face detector | e.g. `face_yolov8m.pt` in `models/ultralytics/bbox/`. The one thing you must supply yourself |
+| a face detector | e.g. `face_yolov8m.pt` in `models/ultralytics/bbox/`. The one thing you must supply yourself. For anime, use an anime face model instead |
 
 Python packages (`ultralytics`, `scipy`, `insightface`) install automatically from
 `requirements.txt` / `pyproject.toml`.
@@ -178,12 +178,14 @@ emits a constant-size batch of crops plus the `transform` needed to paste result
 | `size_mode` | `per_frame` | `per_frame` holds the face at a constant fraction of every crop, which is correct for push-ins. `max_of_clip` uses one size throughout, only useful when the shot is static. |
 | `identity_reference` *(opt)* | - | A clear face image of the person to track. Picks the subject by identity rather than size. |
 | `identity_track` *(opt)* | `True` | Hold one subject through a crowd. Continuity decides most frames; the identity embedding is consulted only when two candidates are similarly plausible or their boxes overlap. |
-| `identity_threshold` *(opt)* | `0.28` | Minimum cosine similarity to accept a face as the reference person. Below it, the frame falls back to continuity, which is what carries tracking through profiles and occlusion. |
+| `identity_threshold` *(opt)* | `0.28` | Minimum score to accept a face as the reference person. Below it, the frame falls back to continuity, which is what carries tracking through profiles and occlusion. The scale depends on `identity_model` — **set `0` to use whichever default the chosen model recommends.** |
 | `select` *(opt)* | `largest` | How the faces in a frame are **ranked**. `largest`, `area`, `confidence`, `most_central`, or the raw box coordinates `x1`, `x2`, `y1`, `y2`, `center_x`, `center_y`. See [Choosing which face](#choosing-which-face). |
 | `fallback_detector` *(opt)* | `none` | Used only on frames where the face detector finds nothing. A person/body model gives a real head position from the top of the body box, which beats interpolating blindly. |
 | `fallback_head_frac` *(opt)* | `0.5` | Head centre as a multiple of face height below the top of the person box. 0.5 suits a head seen from behind. |
 | `select_order` *(opt)* | `descending` | Direction of the ranking. `descending` puts the **highest** value of the metric at index 0, `ascending` the lowest. |
 | `select_index` *(opt)* | `0` | Which face in that ranking to track. `0` is the first, `1` the second, and so on. |
+| `identity_model` *(opt)* | `insightface` | Which model decides two faces are the same person. `insightface` for photographed faces, `clip_vision` or `ccip` for anime and other non-photographic material. See [Anime and other non-photographic material](#anime-and-other-non-photographic-material). |
+| `identity_clip_vision` *(opt)* | - | A `CLIP_VISION` model from a `CLIPVisionLoader`, used only when `identity_model` is `clip_vision`. |
 
 **Outputs**
 
@@ -256,6 +258,43 @@ and `select_index` are ignored (the report says so), and no frames are held back
 
 If the clip never shows as many faces at once as you asked for, `select_index` is clamped to what
 exists and the report says so.
+
+### Anime and other non-photographic material
+
+`buffalo_l` is ArcFace trained on photographed faces, and the node reaches it through InsightFace's
+**own** detector (SCRFD, trained on WIDER FACE). On illustration that detector fires on nothing, so
+there are no candidates to compare and identity matching quietly degrades to continuity. Nothing
+goes visibly wrong — you simply never get the crowd handling.
+
+Swapping only the recogniser would not fix that, because the candidates still have to come from
+SCRFD. So the two other backends embed **the boxes your own detector already found**:
+
+| `identity_model` | needs | good for |
+|---|---|---|
+| `insightface` *(default)* | nothing extra | photographed human faces. Unchanged. |
+| `clip_vision` | a `CLIPVisionLoader` wired to `identity_clip_vision` | any domain — anime, 3D, stylised. No install. |
+| `ccip` | `pip install dghs-imgutils` | anime specifically. Purpose-built for *"is this the same character?"* |
+
+`ccip` is [CCIP](https://github.com/deepghs/imgutils), the illustration counterpart of ArcFace, and
+it is the most accurate of the three on anime. It is **deliberately not a declared dependency** of
+this pack: it pins `numpy<2` and pulls `opencv-contrib-python`, which shadows the OpenCV build
+ComfyUI ships in exactly the way `onnxruntime-gpu` shadows `onnxruntime`. Install it yourself if you
+want it; nothing else changes if you do not. Its ONNX models download on first use.
+
+`clip_vision` needs no install, works on anything, and reuses a model you probably already have for
+IPAdapter or Redux. It describes *appearance* rather than identity, so two characters with a similar
+palette can collide, and its similarities sit high and close together.
+
+**Also swap the detector.** These backends only see what `detector` gives them, so pair them with an
+anime face model in `models/ultralytics/bbox/` — the usual choices are
+[deepghs/anime_face_detection](https://huggingface.co/deepghs/anime_face_detection) or Anzhc's
+face-seg models. A photographic `face_yolov8m.pt` will not find anime faces either.
+
+**Setting the threshold.** `identity_threshold` means a different thing per backend: `0.28` suits
+InsightFace cosine, `clip_vision` wants roughly `0.80`, and `ccip` scores `0.5` at its own published
+operating point. **Set it to `0` to use the chosen model's own default.** The report prints the
+scores it actually saw, and warns when the threshold cleared every candidate and so filtered
+nothing — set it from that evidence rather than guessing.
 
 **Multiple people:** run the pipeline once per subject, each with that person's `identity_reference`
 and their own refs on the H3 node, then chain them, feeding run 1's stitched output in as run 2's

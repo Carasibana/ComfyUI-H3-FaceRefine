@@ -14,6 +14,12 @@ dependencies = [
     "scipy",
     "insightface",
 ]
+# dghs-imgutils is deliberately NOT declared here either. It backs identity_model="ccip",
+# the anime identity backend, and it pins numpy<2 and pulls opencv-contrib-python - which
+# shadows the OpenCV build ComfyUI ships, the same failure mode described below. It is
+# imported only when that backend is selected, and the node says how to install it.
+# Users who want it run:  pip install dghs-imgutils
+#
 # onnxruntime is deliberately NOT pinned here. insightface pulls the runtime it needs,
 # and declaring onnxruntime-gpu alongside an existing onnxruntime makes the CPU-only
 # package shadow it - CUDAExecutionProvider then disappears and identity matching
