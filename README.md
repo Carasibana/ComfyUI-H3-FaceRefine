@@ -625,7 +625,7 @@ palette can collide, and its similarities sit high and close together.
 **Also swap the detector.** These backends only see what `detector` gives them, so pair them with an
 anime face model in `models/ultralytics/bbox/` — the usual choices are
 [deepghs/anime_face_detection](https://huggingface.co/deepghs/anime_face_detection) or Anzhc's
-face-seg models. A photographic `face_yolov8m.pt` will not find anime faces either.
+face-seg models. A photographic `face_yolov8m.pt` may not find anime faces either.
 
 **Setting the threshold.** `identity_threshold` means a different thing per backend: `0.28` suits
 InsightFace cosine, `clip_vision` wants roughly `0.80`, and `ccip` scores `0.5` at its own published
