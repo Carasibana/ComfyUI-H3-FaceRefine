@@ -16,3 +16,14 @@ Thumbs.db
 *.swp
 *.swo
 *~
+
+# AI assistant tooling
+.claude/
+.cursor/
+.cursorrules
+.aider*
+.continue/
+.windsurf/
+.mcp.json
+CLAUDE.md
+AGENTS.md

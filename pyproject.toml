@@ -1,7 +1,7 @@
 [project]
 name = "comfyui-h3-facerefine"
 description = "Refine and improve the quality of small faces in MiniMax H3 video: per-frame face tracking, normalised crops, AV-latent injection and feathered stitch-back."
-version = "1.0.0"
+version = "1.1.0"
 license = { file = "LICENSE" }
 requires-python = ">=3.9"
 readme = "README.md"
@@ -13,6 +13,10 @@ dependencies = [
     "ultralytics",
     "scipy",
     "insightface",
+    # Backs cut_detection="auto". Declared normally, unlike dghs-imgutils below:
+    # it does not pin numpy, and its opencv-python requirement is already implied by
+    # ultralytics, so it pulls in no OpenCV build that is not present anyway.
+    "scenedetect>=0.7",
 ]
 # dghs-imgutils is deliberately NOT declared here either. It backs identity_model="ccip",
 # the anime identity backend, and it pins numpy<2 and pulls opencv-contrib-python - which

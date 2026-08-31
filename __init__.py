@@ -16,6 +16,19 @@ The crop must be PER FRAME. A single fixed crop degenerates to a wide shot on a
 push-in, which hands H3 exactly the small face it fails on.
 """
 
+import os
+
 from .nodes import NODE_CLASS_MAPPINGS, NODE_DISPLAY_NAME_MAPPINGS
 
-__all__ = ["NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"]
+# Face picker: a button on H3 Load Video + Face Select that shows the detected faces
+# and writes the chosen index per shot into confirmed_pick.
+WEB_DIRECTORY = "./web"
+
+try:
+    from . import picker_api
+
+    picker_api.register()
+except Exception as _exc:  # the nodes must load even if the picker route does not
+    print("[H3FaceRefine] face picker unavailable: %s" % _exc)
+
+__all__ = ["NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS", "WEB_DIRECTORY"]

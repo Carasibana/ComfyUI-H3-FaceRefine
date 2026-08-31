@@ -1,0 +1,3085 @@
+{
+ "id": "h3-face-refine-example",
+ "revision": 0,
+ "last_node_id": 112,
+ "last_link_id": 46,
+ "nodes": [
+  {
+   "id": 15,
+   "type": "KSamplerSelect",
+   "pos": [
+    435,
+    550
+   ],
+   "size": [
+    285,
+    60
+   ],
+   "flags": {},
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "sampler_name",
+     "type": "COMBO",
+     "widget": {
+      "name": "sampler_name"
+     },
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "SAMPLER",
+     "type": "SAMPLER",
+     "links": [
+      21
+     ]
+    }
+   ],
+   "title": "Sampler",
+   "properties": {
+    "cnr_id": "comfy-core",
+    "ver": "0.34.0",
+    "Node name for S&R": "KSamplerSelect",
+    "ue_properties": {
+     "widget_ue_connectable": {},
+     "version": "7.8",
+     "input_ue_unconnectable": {}
+    }
+   },
+   "widgets_values": [
+    "er_sde"
+   ]
+  },
+  {
+   "id": 16,
+   "type": "BasicScheduler",
+   "pos": [
+    435,
+    680
+   ],
+   "size": [
+    285,
+    135
+   ],
+   "flags": {},
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "model",
+     "type": "MODEL",
+     "link": 18
+    },
+    {
+     "name": "scheduler",
+     "type": "COMBO",
+     "widget": {
+      "name": "scheduler"
+     },
+     "link": null
+    },
+    {
+     "name": "steps",
+     "type": "INT",
+     "widget": {
+      "name": "steps"
+     },
+     "link": null
+    },
+    {
+     "name": "denoise",
+     "type": "FLOAT",
+     "widget": {
+      "name": "denoise"
+     },
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "SIGMAS",
+     "type": "SIGMAS",
+     "links": [
+      22
+     ]
+    }
+   ],
+   "title": "6. DENOISE - the key dial",
+   "properties": {
+    "cnr_id": "comfy-core",
+    "ver": "0.34.0",
+    "Node name for S&R": "BasicScheduler",
+    "ue_properties": {
+     "widget_ue_connectable": {},
+     "version": "7.8",
+     "input_ue_unconnectable": {}
+    }
+   },
+   "widgets_values": [
+    "simple",
+    8,
+    0.4
+   ],
+   "color": "#322",
+   "bgcolor": "#533"
+  },
+  {
+   "id": 17,
+   "type": "RandomNoise",
+   "pos": [
+    435,
+    885
+   ],
+   "size": [
+    285,
+    90
+   ],
+   "flags": {},
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "noise_seed",
+     "type": "INT",
+     "widget": {
+      "name": "noise_seed"
+     },
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "NOISE",
+     "type": "NOISE",
+     "links": [
+      19
+     ]
+    }
+   ],
+   "title": "Noise (fix while testing)",
+   "properties": {
+    "cnr_id": "comfy-core",
+    "ver": "0.34.0",
+    "Node name for S&R": "RandomNoise",
+    "ue_properties": {
+     "widget_ue_connectable": {},
+     "version": "7.8",
+     "input_ue_unconnectable": {}
+    }
+   },
+   "widgets_values": [
+    42,
+    "fixed"
+   ]
+  },
+  {
+   "id": 18,
+   "type": "SamplerCustomAdvanced",
+   "pos": [
+    780,
+    405
+   ],
+   "size": [
+    300,
+    150
+   ],
+   "flags": {},
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "noise",
+     "type": "NOISE",
+     "link": 19
+    },
+    {
+     "name": "guider",
+     "type": "GUIDER",
+     "link": 20
+    },
+    {
+     "name": "sampler",
+     "type": "SAMPLER",
+     "link": 21
+    },
+    {
+     "name": "sigmas",
+     "type": "SIGMAS",
+     "link": 22
+    },
+    {
+     "name": "latent_image",
+     "type": "LATENT",
+     "link": 25
+    }
+   ],
+   "outputs": [
+    {
+     "name": "output",
+     "type": "LATENT",
+     "links": [
+      26
+     ]
+    },
+    {
+     "name": "denoised_output",
+     "type": "LATENT",
+     "links": []
+    }
+   ],
+   "title": "7. Sample",
+   "properties": {
+    "cnr_id": "comfy-core",
+    "ver": "0.34.0",
+    "Node name for S&R": "SamplerCustomAdvanced",
+    "ue_properties": {
+     "widget_ue_connectable": {},
+     "version": "7.8",
+     "input_ue_unconnectable": {}
+    }
+   }
+  },
+  {
+   "id": 22,
+   "type": "H3FaceStitch",
+   "pos": [
+    1395,
+    405
+   ],
+   "size": [
+    330,
+    270
+   ],
+   "flags": {},
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "base_images",
+     "type": "IMAGE",
+     "link": 42
+    },
+    {
+     "name": "refined_crops",
+     "type": "IMAGE",
+     "link": 29
+    },
+    {
+     "name": "transform",
+     "type": "H3FACEXFORM",
+     "link": 30
+    },
+    {
+     "name": "masks",
+     "shape": 7,
+     "type": "MASK",
+     "link": 34
+    },
+    {
+     "name": "paste_region",
+     "type": "COMBO",
+     "widget": {
+      "name": "paste_region"
+     },
+     "link": null
+    },
+    {
+     "name": "mask_dilation",
+     "type": "INT",
+     "widget": {
+      "name": "mask_dilation"
+     },
+     "link": null
+    },
+    {
+     "name": "feather",
+     "type": "INT",
+     "widget": {
+      "name": "feather"
+     },
+     "link": null
+    },
+    {
+     "name": "colour_match",
+     "type": "FLOAT",
+     "widget": {
+      "name": "colour_match"
+     },
+     "link": null
+    },
+    {
+     "name": "blend",
+     "type": "FLOAT",
+     "widget": {
+      "name": "blend"
+     },
+     "link": null
+    },
+    {
+     "name": "undetected_frames",
+     "type": "COMBO",
+     "widget": {
+      "name": "undetected_frames"
+     },
+     "link": null
+    },
+    {
+     "name": "feather_scales_with_crop",
+     "shape": 7,
+     "type": "BOOLEAN",
+     "widget": {
+      "name": "feather_scales_with_crop"
+     },
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "links": [
+      35
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "H3FaceStitch",
+    "ue_properties": {
+     "widget_ue_connectable": {},
+     "version": "7.8",
+     "input_ue_unconnectable": {}
+    }
+   },
+   "widgets_values": [
+    "face_only",
+    24,
+    24,
+    1,
+    1,
+    "fade_out",
+    false
+   ],
+   "color": "#322",
+   "bgcolor": "#533"
+  },
+  {
+   "id": 4,
+   "type": "VAELoader",
+   "pos": [
+    -1470,
+    755
+   ],
+   "size": [
+    330,
+    60
+   ],
+   "flags": {},
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "vae_name",
+     "type": "COMBO",
+     "widget": {
+      "name": "vae_name"
+     },
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "VAE",
+     "type": "VAE",
+     "links": [
+      3,
+      10,
+      27
+     ]
+    }
+   ],
+   "title": "Load VAE — video",
+   "properties": {
+    "cnr_id": "comfy-core",
+    "ver": "0.34.0",
+    "Node name for S&R": "VAELoader",
+    "ue_properties": {
+     "widget_ue_connectable": {},
+     "version": "7.8",
+     "input_ue_unconnectable": {}
+    }
+   },
+   "widgets_values": [
+    "MiniMax H3\\minimax_h3_video_vae_fp16.safetensors"
+   ],
+   "color": "#232",
+   "bgcolor": "#353"
+  },
+  {
+   "id": 5,
+   "type": "VAELoader",
+   "pos": [
+    -1470,
+    885
+   ],
+   "size": [
+    330,
+    60
+   ],
+   "flags": {},
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "vae_name",
+     "type": "COMBO",
+     "widget": {
+      "name": "vae_name"
+     },
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "VAE",
+     "type": "VAE",
+     "links": [
+      4,
+      14
+     ]
+    }
+   ],
+   "title": "Load VAE — audio",
+   "properties": {
+    "cnr_id": "comfy-core",
+    "ver": "0.34.0",
+    "Node name for S&R": "VAELoader",
+    "ue_properties": {
+     "widget_ue_connectable": {},
+     "version": "7.8",
+     "input_ue_unconnectable": {}
+    }
+   },
+   "widgets_values": [
+    "MiniMax H3\\minimax_h3_audio_vae_fp32.safetensors"
+   ],
+   "color": "#232",
+   "bgcolor": "#353"
+  },
+  {
+   "id": 8,
+   "type": "VHS_LoadAudioUpload",
+   "pos": [
+    -1860,
+    1205
+   ],
+   "size": [
+    330,
+    210
+   ],
+   "flags": {},
+   "mode": 2,
+   "inputs": [
+    {
+     "name": "audio",
+     "type": "COMBO",
+     "widget": {
+      "name": "audio"
+     },
+     "link": null
+    },
+    {
+     "name": "start_time",
+     "shape": 7,
+     "type": "FLOAT",
+     "widget": {
+      "name": "start_time"
+     },
+     "link": null
+    },
+    {
+     "name": "duration",
+     "shape": 7,
+     "type": "FLOAT",
+     "widget": {
+      "name": "duration"
+     },
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "audio",
+     "type": "AUDIO",
+     "links": []
+    },
+    {
+     "name": "duration",
+     "type": "FLOAT",
+     "links": null
+    }
+   ],
+   "title": "Separate audio — optional (muted)",
+   "properties": {
+    "cnr_id": "comfyui-videohelpersuite",
+    "ver": "4ee72c065db22c9d96c2427954dc69e7b908444b",
+    "Node name for S&R": "VHS_LoadAudioUpload",
+    "ue_properties": {
+     "widget_ue_connectable": {},
+     "version": "7.8",
+     "input_ue_unconnectable": {}
+    }
+   },
+   "widgets_values": {
+    "audio": "your_clip_VOCALS.mp3",
+    "start_time": 0,
+    "duration": 0,
+    "audiopreview": {
+     "params": {
+      "filename": "your_clip_VOCALS.mp3",
+      "type": "input",
+      "start_time": 0,
+      "duration": 0
+     }
+    }
+   },
+   "color": "#233",
+   "bgcolor": "#355"
+  },
+  {
+   "id": 7,
+   "type": "LoadImage",
+   "pos": [
+    -1860,
+    805
+   ],
+   "size": [
+    330,
+    330
+   ],
+   "flags": {},
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "image",
+     "type": "COMBO",
+     "widget": {
+      "name": "image"
+     },
+     "link": null
+    },
+    {
+     "name": "upload",
+     "type": "IMAGEUPLOAD",
+     "widget": {
+      "name": "upload"
+     },
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "IMAGE",
+     "type": "IMAGE",
+     "links": [
+      6
+     ]
+    },
+    {
+     "name": "MASK",
+     "type": "MASK",
+     "links": []
+    }
+   ],
+   "title": "Load Image — Ref 2, optional (wardrobe etc)",
+   "properties": {
+    "cnr_id": "comfy-core",
+    "ver": "0.34.0",
+    "Node name for S&R": "LoadImage",
+    "ue_properties": {
+     "widget_ue_connectable": {},
+     "version": "7.8",
+     "input_ue_unconnectable": {}
+    }
+   },
+   "widgets_values": [
+    "second_reference.png",
+    "image"
+   ],
+   "color": "#233",
+   "bgcolor": "#355"
+  },
+  {
+   "id": 107,
+   "type": "Note",
+   "pos": [
+    -2445,
+    625
+   ],
+   "size": [
+    525,
+    270
+   ],
+   "flags": {},
+   "mode": 0,
+   "inputs": [],
+   "outputs": [],
+   "title": "Canvas size",
+   "properties": {
+    "text": "",
+    "ue_properties": {
+     "widget_ue_connectable": {},
+     "version": "7.8",
+     "input_ue_unconnectable": {}
+    }
+   },
+   "widgets_values": [
+    "CANVAS SIZE\n\ncanvas_mode decides the resolution H3 generates at:\n\n  manual            - use canvas_width/height exactly as typed\n  auto_no_downscale - size from the LARGEST crop in the clip, so no frame is\n                      ever downscaled. Can get expensive on clips containing\n                      close-ups.\n  auto_capped_768   - same, but clamped to 768 (H3's native short edge, and a\n                      sane VRAM ceiling). This is what ships here.\n\ncanvas_w / canvas_h are WIRED into the H3 node's width/height on purpose. In the auto modes the tracker chooses the size, and if the H3 node disagrees the latent shapes differ and injection refuses. Do not retype them by hand.\n\nWatch the tracker's report for \"magnification < 1.0x\": that means the crop is being DOWNSCALED into the canvas and real detail is being thrown away. Raise the canvas, or skip the clip if it is close-up throughout.\n\nCost scales with canvas AREA x frames, so 768 is 2.25x the latent tokens of 512."
+   ],
+   "color": "#432",
+   "bgcolor": "#653"
+  },
+  {
+   "id": 9,
+   "type": "MiniMaxH3ReferenceToVideo",
+   "pos": [
+    -705,
+    405
+   ],
+   "size": [
+    360,
+    390
+   ],
+   "flags": {},
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "clip",
+     "type": "CLIP",
+     "link": 2
+    },
+    {
+     "name": "vae",
+     "type": "VAE",
+     "link": 3
+    },
+    {
+     "name": "audio_vae",
+     "type": "VAE",
+     "link": 4
+    },
+    {
+     "name": "ref_images.ref_image_0",
+     "shape": 7,
+     "type": "IMAGE",
+     "link": 5
+    },
+    {
+     "name": "ref_images.ref_image_1",
+     "shape": 7,
+     "type": "IMAGE",
+     "link": 6
+    },
+    {
+     "name": "ref_images.ref_image_2",
+     "shape": 7,
+     "type": "IMAGE",
+     "link": null
+    },
+    {
+     "label": "ref_video_0",
+     "name": "ref_videos.ref_video_0",
+     "shape": 7,
+     "type": "IMAGE",
+     "link": null
+    },
+    {
+     "label": "ref_video_audio_0",
+     "name": "ref_video_audios.ref_video_audio_0",
+     "shape": 7,
+     "type": "AUDIO",
+     "link": null
+    },
+    {
+     "name": "ref_audios.ref_audio_0",
+     "shape": 7,
+     "type": "AUDIO",
+     "link": 43
+    },
+    {
+     "name": "ref_audios.ref_audio_1",
+     "shape": 7,
+     "type": "AUDIO",
+     "link": null
+    },
+    {
+     "name": "prompt",
+     "type": "STRING",
+     "widget": {
+      "name": "prompt"
+     },
+     "link": null
+    },
+    {
+     "name": "width",
+     "type": "INT",
+     "widget": {
+      "name": "width"
+     },
+     "link": 37
+    },
+    {
+     "name": "height",
+     "type": "INT",
+     "widget": {
+      "name": "height"
+     },
+     "link": 38
+    },
+    {
+     "name": "length",
+     "type": "INT",
+     "widget": {
+      "name": "length"
+     },
+     "link": 40
+    },
+    {
+     "name": "ref_image_size",
+     "type": "COMBO",
+     "widget": {
+      "name": "ref_image_size"
+     },
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "positive",
+     "type": "CONDITIONING",
+     "links": [
+      17
+     ]
+    },
+    {
+     "name": "LATENT",
+     "type": "LATENT",
+     "links": [
+      8
+     ]
+    }
+   ],
+   "title": "3. Conditioning + EMPTY AV latent",
+   "properties": {
+    "cnr_id": "comfy-core",
+    "ver": "0.34.0",
+    "Node name for S&R": "MiniMaxH3ReferenceToVideo",
+    "ue_properties": {
+     "widget_ue_connectable": {
+      "width": true,
+      "height": true,
+      "length": true
+     },
+     "version": "7.8",
+     "input_ue_unconnectable": {}
+    }
+   },
+   "widgets_values": [
+    "<paste the clip's own prompt here>",
+    768,
+    768,
+    362,
+    "match"
+   ],
+   "color": "#232",
+   "bgcolor": "#353"
+  },
+  {
+   "id": 10,
+   "type": "H3InjectVideoLatent",
+   "pos": [
+    -315,
+    405
+   ],
+   "size": [
+    330,
+    105
+   ],
+   "flags": {},
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "av_latent",
+     "type": "LATENT",
+     "link": 8
+    },
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "link": 9
+    },
+    {
+     "name": "vae",
+     "type": "VAE",
+     "link": 10
+    }
+   ],
+   "outputs": [
+    {
+     "name": "av_latent",
+     "type": "LATENT",
+     "links": [
+      13
+     ]
+    },
+    {
+     "name": "report",
+     "type": "STRING",
+     "links": []
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "H3InjectVideoLatent",
+    "ue_properties": {
+     "widget_ue_connectable": {},
+     "version": "7.8",
+     "input_ue_unconnectable": {}
+    }
+   },
+   "color": "#322",
+   "bgcolor": "#533"
+  },
+  {
+   "id": 106,
+   "type": "Note",
+   "pos": [
+    -315,
+    595
+   ],
+   "size": [
+    330,
+    285
+   ],
+   "flags": {},
+   "mode": 0,
+   "inputs": [],
+   "outputs": [],
+   "title": "Inject Video Latent",
+   "properties": {
+    "ue_properties": {
+     "widget_ue_connectable": {},
+     "version": "7.8",
+     "input_ue_unconnectable": {}
+    }
+   },
+   "widgets_values": [
+    "WHY THIS NODE EXISTS\n\nH3's stock nodes ALWAYS build a zeros latent. References are conditioning that is re-injected every step - never a starting point. So there is no video-to-video path out of the box.\n\nThis encodes the real cropped frames into the VIDEO stream of the joint AV latent, leaving the audio stream alone. That turns SamplerCustomAdvanced + denoise<1.0 into ordinary img2img.\n\nFrame count must sit on H3's 17k+5 grid (5, 22, 39 ... 175, 226, 362). Clips generated by H3 already do."
+   ],
+   "color": "#432",
+   "bgcolor": "#653"
+  },
+  {
+   "id": 101,
+   "type": "Note",
+   "pos": [
+    -705,
+    865
+   ],
+   "size": [
+    360,
+    285
+   ],
+   "flags": {},
+   "mode": 0,
+   "inputs": [],
+   "outputs": [],
+   "title": "Why per-frame crop",
+   "properties": {
+    "ue_properties": {
+     "widget_ue_connectable": {},
+     "version": "7.8",
+     "input_ue_unconnectable": {}
+    }
+   },
+   "widgets_values": [
+    "PER-FRAME CROPPING IS MANDATORY\n\nA single fixed crop is sized by the widest frame. On a push-in the face is then STILL SMALL inside that crop - on exactly the frames that needed help. The benefit vanishes where it matters.\n\nSo the crop SIZE varies per frame, holding the face at a constant fraction of every crop (crop_factor). Every crop is then resized to ONE canvas, because H3 generates a single fixed WxH for a whole sequence.\n\nResult: the face is always large in H3's input, however small it was in the source.\n\nSMOOTHING\nsize_smooth_window (51) is deliberately larger than smooth_window (21). Size jitter makes the crop breathe, which changes the resample factor every frame and reads as shimmer.\n\ngaussian beats savgol here - polynomial fits preserve sharp features by design, which is the opposite of what you want."
+   ],
+   "color": "#432",
+   "bgcolor": "#653"
+  },
+  {
+   "id": 13,
+   "type": "MiniMaxH3NativeAudioLock",
+   "pos": [
+    75,
+    405
+   ],
+   "size": [
+    330,
+    120
+   ],
+   "flags": {},
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "model",
+     "type": "MODEL",
+     "link": 12
+    },
+    {
+     "name": "av_latent",
+     "type": "LATENT",
+     "link": 13
+    },
+    {
+     "name": "audio_vae",
+     "type": "VAE",
+     "link": 14
+    },
+    {
+     "name": "audio",
+     "type": "AUDIO",
+     "link": 44
+    }
+   ],
+   "outputs": [
+    {
+     "name": "model",
+     "type": "MODEL",
+     "links": [
+      39
+     ]
+    },
+    {
+     "name": "av_latent",
+     "type": "LATENT",
+     "links": [
+      23
+     ]
+    },
+    {
+     "name": "exact_audio",
+     "type": "AUDIO",
+     "links": []
+    }
+   ],
+   "title": "5. Lock audio -> LIPSYNC",
+   "properties": {
+    "Node name for S&R": "MiniMaxH3NativeAudioLock",
+    "ue_properties": {
+     "widget_ue_connectable": {},
+     "version": "7.8",
+     "input_ue_unconnectable": {}
+    }
+   },
+   "color": "#232",
+   "bgcolor": "#353"
+  },
+  {
+   "id": 31,
+   "type": "H3PerFrameDenoise",
+   "pos": [
+    75,
+    655
+   ],
+   "size": [
+    330,
+    255
+   ],
+   "flags": {},
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "model",
+     "type": "MODEL",
+     "link": 39
+    },
+    {
+     "name": "av_latent",
+     "type": "LATENT",
+     "link": 23
+    },
+    {
+     "name": "transform",
+     "type": "H3FACEXFORM",
+     "link": 24
+    },
+    {
+     "name": "denoise_multiplier_small_face",
+     "type": "FLOAT",
+     "widget": {
+      "name": "denoise_multiplier_small_face"
+     },
+     "link": null
+    },
+    {
+     "name": "denoise_multiplier_large_face",
+     "type": "FLOAT",
+     "widget": {
+      "name": "denoise_multiplier_large_face"
+     },
+     "link": null
+    },
+    {
+     "name": "scale_mode",
+     "type": "COMBO",
+     "widget": {
+      "name": "scale_mode"
+     },
+     "link": null
+    },
+    {
+     "name": "face_px_small",
+     "type": "FLOAT",
+     "widget": {
+      "name": "face_px_small"
+     },
+     "link": null
+    },
+    {
+     "name": "face_px_large",
+     "type": "FLOAT",
+     "widget": {
+      "name": "face_px_large"
+     },
+     "link": null
+    },
+    {
+     "name": "gamma",
+     "type": "FLOAT",
+     "widget": {
+      "name": "gamma"
+     },
+     "link": null
+    },
+    {
+     "name": "smooth_frames",
+     "type": "INT",
+     "widget": {
+      "name": "smooth_frames"
+     },
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "av_latent",
+     "type": "LATENT",
+     "links": [
+      25
+     ]
+    },
+    {
+     "name": "report",
+     "type": "STRING",
+     "links": []
+    },
+    {
+     "name": "model",
+     "type": "MODEL",
+     "links": [
+      16,
+      18
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "H3PerFrameDenoise",
+    "ue_properties": {
+     "widget_ue_connectable": {},
+     "version": "7.8",
+     "input_ue_unconnectable": {}
+    }
+   },
+   "widgets_values": [
+    1,
+    0.35,
+    "absolute_px",
+    30,
+    120,
+    1,
+    9
+   ],
+   "color": "#322",
+   "bgcolor": "#533"
+  },
+  {
+   "id": 103,
+   "type": "Note",
+   "pos": [
+    75,
+    995
+   ],
+   "size": [
+    330,
+    255
+   ],
+   "flags": {},
+   "mode": 0,
+   "inputs": [],
+   "outputs": [],
+   "title": "How lipsync works",
+   "properties": {
+    "ue_properties": {
+     "widget_ue_connectable": {},
+     "version": "7.8",
+     "input_ue_unconnectable": {}
+    }
+   },
+   "widgets_values": [
+    "LIPSYNC\n\nH3 is a JOINT audio-video model. NativeAudioLock:\n  1. encodes real audio into the AUDIO stream of the AV latent\n     (auto-resamples to the VAE's 32kHz - source is usually 48k)\n  2. sets noise_mask = ones(video) / zeros(audio)\n     so ONLY video denoises\n  3. the video branch cross-attends to that fixed audio\n\nThat is what shapes the mouth.\n\nFeed it the VOCALS track, not the full mix - cleaner signal.\n\nThe ORIGINAL audio goes separately into the save node at the far right. Two different audio paths, do not confuse them."
+   ],
+   "color": "#432",
+   "bgcolor": "#653"
+  },
+  {
+   "id": 102,
+   "type": "Note",
+   "pos": [
+    780,
+    625
+   ],
+   "size": [
+    300,
+    465
+   ],
+   "flags": {},
+   "mode": 0,
+   "inputs": [],
+   "outputs": [],
+   "title": "DENOISE - read before changing",
+   "properties": {
+    "ue_properties": {
+     "widget_ue_connectable": {},
+     "version": "7.8",
+     "input_ue_unconnectable": {}
+    }
+   },
+   "widgets_values": [
+    "DENOISE - THE CRITICAL DIAL\n\nDO NOT carry values over from SDXL-family models. H3 is FLOW MATCHING with a large sigma shift, so the same number means something very different.\n\nsigma = shift*t / (1 + (shift-1)*t)\n\nAt the default shift of 12:\n  denoise 0.02 -> effective 0.197\n  denoise 0.05 -> effective 0.387\n  denoise 0.15 -> effective ~0.68\n  denoise 0.25 -> effective 0.800\n\nThis graph ships denoise 0.40 as a BASE, because it is not applied flat. The H3 Per-Frame Denoise node scales it DOWN per frame by face size: small faces keep close to the full 0.40 and get synthesised, large faces drop to ~0.35x of it and keep the detail they already have.\n\nBase and scaling are tuned TOGETHER. If you bypass the per-frame node, drop the base a long way (0.15-0.25) or every large face gets rewritten.\n\nToo low: nothing changes.\nToo high: the head starts drifting relative to the body - a content problem no mask can hide.\n\nNOTE steps and denoise are INDEPENDENT. BasicScheduler builds a (steps/denoise)-long full-range schedule and keeps the lowest steps+1 sigmas, so 8 steps with the turbo LoRA this graph ships is both fast and gentle.\n\nDo NOT use SplitSigmas for this - on a short schedule at shift 12 even the last split point is already sigma 0.800."
+   ],
+   "color": "#432",
+   "bgcolor": "#653"
+  },
+  {
+   "id": 14,
+   "type": "BasicGuider",
+   "pos": [
+    435,
+    405
+   ],
+   "size": [
+    285,
+    75
+   ],
+   "flags": {},
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "model",
+     "type": "MODEL",
+     "link": 16
+    },
+    {
+     "name": "conditioning",
+     "type": "CONDITIONING",
+     "link": 17
+    }
+   ],
+   "outputs": [
+    {
+     "name": "GUIDER",
+     "type": "GUIDER",
+     "links": [
+      20
+     ]
+    }
+   ],
+   "title": "Guider",
+   "properties": {
+    "cnr_id": "comfy-core",
+    "ver": "0.34.0",
+    "Node name for S&R": "BasicGuider",
+    "ue_properties": {
+     "widget_ue_connectable": {},
+     "version": "7.8",
+     "input_ue_unconnectable": {}
+    }
+   }
+  },
+  {
+   "id": 19,
+   "type": "VAEDecode",
+   "pos": [
+    1110,
+    405
+   ],
+   "size": [
+    255,
+    75
+   ],
+   "flags": {},
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "samples",
+     "type": "LATENT",
+     "link": 26
+    },
+    {
+     "name": "vae",
+     "type": "VAE",
+     "link": 27
+    }
+   ],
+   "outputs": [
+    {
+     "name": "IMAGE",
+     "type": "IMAGE",
+     "links": [
+      29
+     ]
+    }
+   ],
+   "title": "8. Decode refined crops",
+   "properties": {
+    "cnr_id": "comfy-core",
+    "ver": "0.34.0",
+    "Node name for S&R": "VAEDecode",
+    "ue_properties": {
+     "widget_ue_connectable": {},
+     "version": "7.8",
+     "input_ue_unconnectable": {}
+    }
+   },
+   "color": "#232",
+   "bgcolor": "#353"
+  },
+  {
+   "id": 104,
+   "type": "Note",
+   "pos": [
+    1395,
+    760
+   ],
+   "size": [
+    330,
+    405
+   ],
+   "flags": {},
+   "mode": 0,
+   "inputs": [],
+   "outputs": [],
+   "title": "Stitch + SAM mask",
+   "properties": {
+    "ue_properties": {
+     "widget_ue_connectable": {},
+     "version": "7.8",
+     "input_ue_unconnectable": {}
+    }
+   },
+   "widgets_values": [
+    "STITCH + the optional SAM mask\n\nThe two nodes to the left - SAMLoader and H3 Face Mask (SAM) - ship MUTED, and stay\nwired. Unmute both (Ctrl+M) to swap the rect paste mask for a true face-shaped one.\nMuted, this graph needs no SAM model. Unmuted it also needs one, in models/sams/.\nComfyUI-Impact-Pack is required either way: its subpack registers the ultralytics\nmodel folders, and this graph's detector values use that naming.\n\nFEATHER IS IN SOURCE PIXELS, and the two masks want very different values. This graph\nships 24 for the rect. With a SAM mask drop it to 4-8.\n\nKEY POINT: the wide crop exists to give the SAMPLER CONTEXT. It is NOT what gets\npasted. Only the face region composites; everything else keeps its original pixels.\n\nSAM MASKS THE INPUT, NEVER THE OUTPUT. The mask node takes the TRACKER's crops, not\nthe decoded result - the same way FaceDetailer computes its mask from the source\nimage. Mask the generated result instead and, if the model nudges the face inward,\nthe mask traces the NEW smaller silhouette while the original face pokes out past it\n- most visibly the nose on profile shots. It is also cheaper: no dependency on the\nsampler, so SAM need not be resident alongside the video model.\n\nWORTH KNOWING: a rect mask often BEATS SAM. SAM traces the face tightly, so any drift\nin the refined face lands right on the silhouette. A slightly looser rect puts the\nseam in hair and background where it reads far less. That is why it is the default."
+   ],
+   "color": "#432",
+   "bgcolor": "#653"
+  },
+  {
+   "id": 23,
+   "type": "VHS_VideoCombine",
+   "pos": [
+    1740,
+    405
+   ],
+   "size": [
+    390,
+    500
+   ],
+   "flags": {},
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "link": 35
+    },
+    {
+     "name": "audio",
+     "shape": 7,
+     "type": "AUDIO",
+     "link": 45
+    },
+    {
+     "name": "meta_batch",
+     "shape": 7,
+     "type": "VHS_BatchManager",
+     "link": null
+    },
+    {
+     "name": "vae",
+     "shape": 7,
+     "type": "VAE",
+     "link": null
+    },
+    {
+     "name": "frame_rate",
+     "type": "FLOAT",
+     "widget": {
+      "name": "frame_rate"
+     },
+     "link": null
+    },
+    {
+     "name": "loop_count",
+     "type": "INT",
+     "widget": {
+      "name": "loop_count"
+     },
+     "link": null
+    },
+    {
+     "name": "filename_prefix",
+     "type": "STRING",
+     "widget": {
+      "name": "filename_prefix"
+     },
+     "link": null
+    },
+    {
+     "name": "format",
+     "type": "COMBO",
+     "widget": {
+      "name": "format"
+     },
+     "link": null
+    },
+    {
+     "name": "pingpong",
+     "type": "BOOLEAN",
+     "widget": {
+      "name": "pingpong"
+     },
+     "link": null
+    },
+    {
+     "name": "save_output",
+     "type": "BOOLEAN",
+     "widget": {
+      "name": "save_output"
+     },
+     "link": null
+    },
+    {
+     "name": "pix_fmt",
+     "type": [
+      "yuv420p",
+      "yuv420p10le"
+     ],
+     "widget": {
+      "name": "pix_fmt"
+     },
+     "link": null
+    },
+    {
+     "name": "crf",
+     "type": "INT",
+     "widget": {
+      "name": "crf"
+     },
+     "link": null
+    },
+    {
+     "name": "save_metadata",
+     "type": "BOOLEAN",
+     "widget": {
+      "name": "save_metadata"
+     },
+     "link": null
+    },
+    {
+     "name": "trim_to_audio",
+     "type": "BOOLEAN",
+     "widget": {
+      "name": "trim_to_audio"
+     },
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "Filenames",
+     "type": "VHS_FILENAMES",
+     "links": []
+    }
+   ],
+   "title": "10. Save (ORIGINAL audio)",
+   "properties": {
+    "cnr_id": "comfyui-videohelpersuite",
+    "ver": "4ee72c065db22c9d96c2427954dc69e7b908444b",
+    "Node name for S&R": "VHS_VideoCombine",
+    "ue_properties": {
+     "widget_ue_connectable": {},
+     "version": "7.8",
+     "input_ue_unconnectable": {}
+    }
+   },
+   "widgets_values": {
+    "frame_rate": 24,
+    "loop_count": 0,
+    "filename_prefix": "video/FaceRefined/output",
+    "format": "video/h264-mp4",
+    "pix_fmt": "yuv420p",
+    "crf": 16,
+    "save_metadata": true,
+    "trim_to_audio": false,
+    "pingpong": false,
+    "save_output": true,
+    "videopreview": ""
+   },
+   "color": "#233",
+   "bgcolor": "#355"
+  },
+  {
+   "id": 105,
+   "type": "Note",
+   "pos": [
+    1740,
+    975
+   ],
+   "size": [
+    390,
+    210
+   ],
+   "flags": {},
+   "mode": 0,
+   "inputs": [],
+   "outputs": [],
+   "title": "Read each clip's own settings",
+   "properties": {
+    "ue_properties": {
+     "widget_ue_connectable": {},
+     "version": "7.8",
+     "input_ue_unconnectable": {}
+    }
+   },
+   "widgets_values": [
+    "PER-CLIP SETTINGS\n\nClips from one batch are often NOT uniform. Read each clip's OWN embedded workflow rather than assuming:\n\n  ffprobe -v error -show_entries format_tags=prompt -of json yourclip.mp4\n\nThings that commonly vary within a single batch: step count, sampler, whether a turbo LoRA was used at all, and how many reference images were attached.\n\nMirror the clip's own steps / sampler / LoRA / refs here, and change only the denoise settings."
+   ],
+   "color": "#432",
+   "bgcolor": "#653"
+  },
+  {
+   "id": 11,
+   "type": "UnetLoaderGGUF",
+   "pos": [
+    -1470,
+    1190
+   ],
+   "size": [
+    330,
+    60
+   ],
+   "flags": {},
+   "mode": 2,
+   "inputs": [
+    {
+     "name": "unet_name",
+     "type": "COMBO",
+     "widget": {
+      "name": "unet_name"
+     },
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "MODEL",
+     "type": "MODEL",
+     "links": []
+    }
+   ],
+   "title": "H3 model — GGUF alternative (muted)",
+   "properties": {
+    "cnr_id": "ComfyUI-GGUF",
+    "ver": "6ea2651e7df66d7585f6ffee804b20e92fb38b8a",
+    "Node name for S&R": "UnetLoaderGGUF",
+    "ue_properties": {
+     "widget_ue_connectable": {},
+     "version": "7.8",
+     "input_ue_unconnectable": {}
+    }
+   },
+   "widgets_values": [
+    "MiniMax H3\\minimaxH3GGUFFl2vaRef2va_v10.gguf"
+   ],
+   "color": "#232",
+   "bgcolor": "#353"
+  },
+  {
+   "id": 12,
+   "type": "LoraLoaderModelOnly",
+   "pos": [
+    -1470,
+    1015
+   ],
+   "size": [
+    330,
+    105
+   ],
+   "flags": {},
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "model",
+     "type": "MODEL",
+     "link": 11
+    },
+    {
+     "name": "lora_name",
+     "type": "COMBO",
+     "widget": {
+      "name": "lora_name"
+     },
+     "link": null
+    },
+    {
+     "name": "strength_model",
+     "type": "FLOAT",
+     "widget": {
+      "name": "strength_model"
+     },
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "MODEL",
+     "type": "MODEL",
+     "links": [
+      12
+     ]
+    }
+   ],
+   "title": "Turbo LoRA — steps must match",
+   "properties": {
+    "cnr_id": "comfy-core",
+    "ver": "0.34.0",
+    "Node name for S&R": "LoraLoaderModelOnly",
+    "ue_properties": {
+     "widget_ue_connectable": {},
+     "version": "7.8",
+     "input_ue_unconnectable": {}
+    }
+   },
+   "widgets_values": [
+    "MiniMax H3\\minimax_h3_fl2v_turbo_8step_v1.0_comfyui_bf16.safetensors",
+    1
+   ],
+   "color": "#232",
+   "bgcolor": "#353"
+  },
+  {
+   "id": 6,
+   "type": "LoadImage",
+   "pos": [
+    -1860,
+    405
+   ],
+   "size": [
+    330,
+    330
+   ],
+   "flags": {},
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "image",
+     "type": "COMBO",
+     "widget": {
+      "name": "image"
+     },
+     "link": null
+    },
+    {
+     "name": "upload",
+     "type": "IMAGEUPLOAD",
+     "widget": {
+      "name": "upload"
+     },
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "IMAGE",
+     "type": "IMAGE",
+     "links": [
+      5
+     ]
+    },
+    {
+     "name": "MASK",
+     "type": "MASK",
+     "links": []
+    }
+   ],
+   "title": "Load Image — Ref 1, character identity",
+   "properties": {
+    "cnr_id": "comfy-core",
+    "ver": "0.34.0",
+    "Node name for S&R": "LoadImage",
+    "ue_properties": {
+     "widget_ue_connectable": {},
+     "version": "7.8",
+     "input_ue_unconnectable": {}
+    }
+   },
+   "widgets_values": [
+    "character_reference.png",
+    "image"
+   ],
+   "color": "#233",
+   "bgcolor": "#355"
+  },
+  {
+   "id": 3,
+   "type": "CLIPLoaderGGUF",
+   "pos": [
+    -1470,
+    1320
+   ],
+   "size": [
+    330,
+    90
+   ],
+   "flags": {},
+   "mode": 2,
+   "inputs": [
+    {
+     "name": "clip_name",
+     "type": "COMBO",
+     "widget": {
+      "name": "clip_name"
+     },
+     "link": null
+    },
+    {
+     "name": "type",
+     "type": "COMBO",
+     "widget": {
+      "name": "type"
+     },
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "CLIP",
+     "type": "CLIP",
+     "links": []
+    }
+   ],
+   "title": "Text encoder — GGUF alternative (muted)",
+   "properties": {
+    "cnr_id": "ComfyUI-GGUF",
+    "ver": "6ea2651e7df66d7585f6ffee804b20e92fb38b8a",
+    "Node name for S&R": "CLIPLoaderGGUF",
+    "ue_properties": {
+     "widget_ue_connectable": {},
+     "version": "7.8",
+     "input_ue_unconnectable": {}
+    }
+   },
+   "widgets_values": [
+    "MiniMax H3\\qwen3vl_32b_minimax_h3-Q4_K_M.gguf",
+    "minimax"
+   ],
+   "color": "#232",
+   "bgcolor": "#353"
+  },
+  {
+   "id": 2,
+   "type": "H3FaceTrackCrop",
+   "pos": [
+    -1110,
+    1391
+   ],
+   "size": [
+    360,
+    720
+   ],
+   "flags": {},
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "link": 41
+    },
+    {
+     "name": "identity_reference",
+     "shape": 7,
+     "type": "IMAGE",
+     "link": null
+    },
+    {
+     "name": "identity_clip_vision",
+     "shape": 7,
+     "type": "CLIP_VISION",
+     "link": null
+    },
+    {
+     "name": "face_pick",
+     "shape": 7,
+     "type": "H3FACEPICK",
+     "link": 46
+    },
+    {
+     "name": "detector",
+     "type": "COMBO",
+     "widget": {
+      "name": "detector"
+     },
+     "link": null
+    },
+    {
+     "name": "confidence",
+     "type": "FLOAT",
+     "widget": {
+      "name": "confidence"
+     },
+     "link": null
+    },
+    {
+     "name": "crop_factor",
+     "type": "FLOAT",
+     "widget": {
+      "name": "crop_factor"
+     },
+     "link": null
+    },
+    {
+     "name": "canvas_width",
+     "type": "INT",
+     "widget": {
+      "name": "canvas_width"
+     },
+     "link": null
+    },
+    {
+     "name": "canvas_height",
+     "type": "INT",
+     "widget": {
+      "name": "canvas_height"
+     },
+     "link": null
+    },
+    {
+     "name": "canvas_mode",
+     "type": "COMBO",
+     "widget": {
+      "name": "canvas_mode"
+     },
+     "link": null
+    },
+    {
+     "name": "smooth_window",
+     "type": "INT",
+     "widget": {
+      "name": "smooth_window"
+     },
+     "link": null
+    },
+    {
+     "name": "size_smooth_window",
+     "type": "INT",
+     "widget": {
+      "name": "size_smooth_window"
+     },
+     "link": null
+    },
+    {
+     "name": "smooth_method",
+     "type": "COMBO",
+     "widget": {
+      "name": "smooth_method"
+     },
+     "link": null
+    },
+    {
+     "name": "size_mode",
+     "type": "COMBO",
+     "widget": {
+      "name": "size_mode"
+     },
+     "link": null
+    },
+    {
+     "name": "identity_track",
+     "shape": 7,
+     "type": "BOOLEAN",
+     "widget": {
+      "name": "identity_track"
+     },
+     "link": null
+    },
+    {
+     "name": "identity_threshold",
+     "shape": 7,
+     "type": "FLOAT",
+     "widget": {
+      "name": "identity_threshold"
+     },
+     "link": null
+    },
+    {
+     "name": "select",
+     "shape": 7,
+     "type": "COMBO",
+     "widget": {
+      "name": "select"
+     },
+     "link": null
+    },
+    {
+     "name": "fallback_detector",
+     "shape": 7,
+     "type": "COMBO",
+     "widget": {
+      "name": "fallback_detector"
+     },
+     "link": null
+    },
+    {
+     "name": "fallback_head_frac",
+     "shape": 7,
+     "type": "FLOAT",
+     "widget": {
+      "name": "fallback_head_frac"
+     },
+     "link": null
+    },
+    {
+     "name": "select_index",
+     "shape": 7,
+     "type": "INT",
+     "widget": {
+      "name": "select_index"
+     },
+     "link": null
+    },
+    {
+     "name": "identity_model",
+     "shape": 7,
+     "type": "COMBO",
+     "widget": {
+      "name": "identity_model"
+     },
+     "link": null
+    },
+    {
+     "name": "cut_detection",
+     "shape": 7,
+     "type": "COMBO",
+     "widget": {
+      "name": "cut_detection"
+     },
+     "link": null
+    },
+    {
+     "name": "cut_threshold",
+     "shape": 7,
+     "type": "FLOAT",
+     "widget": {
+      "name": "cut_threshold"
+     },
+     "link": null
+    },
+    {
+     "name": "absent_shots",
+     "shape": 7,
+     "type": "COMBO",
+     "widget": {
+      "name": "absent_shots"
+     },
+     "link": null
+    },
+    {
+     "name": "X",
+     "shape": 7,
+     "type": "INT",
+     "widget": {
+      "name": "X"
+     },
+     "link": null
+    },
+    {
+     "name": "Y",
+     "shape": 7,
+     "type": "INT",
+     "widget": {
+      "name": "Y"
+     },
+     "link": null
+    },
+    {
+     "name": "frame_index",
+     "shape": 7,
+     "type": "INT",
+     "widget": {
+      "name": "frame_index"
+     },
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "crops",
+     "type": "IMAGE",
+     "links": [
+      9,
+      31
+     ]
+    },
+    {
+     "name": "transform",
+     "type": "H3FACEXFORM",
+     "links": [
+      24,
+      30,
+      33
+     ]
+    },
+    {
+     "name": "preview",
+     "type": "IMAGE",
+     "links": []
+    },
+    {
+     "name": "report",
+     "type": "STRING",
+     "links": []
+    },
+    {
+     "name": "canvas_w",
+     "type": "INT",
+     "links": [
+      37
+     ]
+    },
+    {
+     "name": "canvas_h",
+     "type": "INT",
+     "links": [
+      38
+     ]
+    },
+    {
+     "name": "frame_count",
+     "type": "INT",
+     "links": [
+      40
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "H3FaceTrackCrop",
+    "ue_properties": {
+     "widget_ue_connectable": {},
+     "version": "7.8",
+     "input_ue_unconnectable": {}
+    }
+   },
+   "widgets_values": [
+    "bbox\\face_yolov8m.pt",
+    0.35,
+    3,
+    768,
+    768,
+    "auto_capped_768",
+    21,
+    51,
+    "gaussian",
+    "per_frame",
+    true,
+    0.28,
+    "largest_face",
+    "segm\\person_yolov8m-seg.pt",
+    0.5,
+    0,
+    "insightface",
+    "none",
+    3,
+    "off",
+    0,
+    0,
+    0
+   ],
+   "color": "#322",
+   "bgcolor": "#533"
+  },
+  {
+   "id": 100,
+   "type": "Note",
+   "pos": [
+    -2445,
+    405
+   ],
+   "size": [
+    525,
+    150
+   ],
+   "flags": {},
+   "mode": 0,
+   "inputs": [],
+   "outputs": [],
+   "title": "READ ME FIRST",
+   "properties": {
+    "ue_properties": {
+     "widget_ue_connectable": {},
+     "version": "7.8",
+     "input_ue_unconnectable": {}
+    }
+   },
+   "widgets_values": [
+    "WHY THIS EXISTS\n\nMiniMax H3 renders faces poorly when the head is a SMALL FRACTION OF THE FRAME. That is a property of head-size-in-frame, not of resolution - it persists at 720p and above.\n\nSo no upscaler fixes it. SeedVR2 and friends sharpen what is already there; they cannot synthesise facial structure that was never generated.\n\nThe fix: crop to the face so it fills the frame, let H3 re-generate it at LOW denoise so it stays frame-aligned, then composite back."
+   ],
+   "color": "#432",
+   "bgcolor": "#653"
+  },
+  {
+   "id": 20,
+   "type": "SAMLoader",
+   "pos": [
+    1110,
+    550
+   ],
+   "size": [
+    270,
+    90
+   ],
+   "flags": {},
+   "mode": 2,
+   "inputs": [
+    {
+     "name": "model_name",
+     "type": "COMBO",
+     "widget": {
+      "name": "model_name"
+     },
+     "link": null
+    },
+    {
+     "name": "device_mode",
+     "type": "COMBO",
+     "widget": {
+      "name": "device_mode"
+     },
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "SAM_MODEL",
+     "type": "SAM_MODEL",
+     "links": [
+      32
+     ]
+    }
+   ],
+   "title": "SAM model (Impact Pack)",
+   "properties": {
+    "cnr_id": "comfyui-impact-pack",
+    "ver": "8.28.3",
+    "Node name for S&R": "SAMLoader",
+    "ue_properties": {
+     "widget_ue_connectable": {},
+     "version": "7.8",
+     "input_ue_unconnectable": {}
+    }
+   },
+   "widgets_values": [
+    "sam_vit_b_01ec64.pth",
+    "AUTO"
+   ],
+   "color": "#432",
+   "bgcolor": "#653"
+  },
+  {
+   "id": 21,
+   "type": "H3FaceMaskSAM",
+   "pos": [
+    1110,
+    770
+   ],
+   "size": [
+    270,
+    150
+   ],
+   "flags": {},
+   "mode": 2,
+   "inputs": [
+    {
+     "name": "crops",
+     "type": "IMAGE",
+     "link": 31
+    },
+    {
+     "name": "sam_model",
+     "type": "SAM_MODEL",
+     "link": 32
+    },
+    {
+     "name": "transform",
+     "type": "H3FACEXFORM",
+     "link": 33
+    },
+    {
+     "name": "threshold",
+     "type": "FLOAT",
+     "widget": {
+      "name": "threshold"
+     },
+     "link": null
+    },
+    {
+     "name": "dilation",
+     "type": "INT",
+     "widget": {
+      "name": "dilation"
+     },
+     "link": null
+    },
+    {
+     "name": "temporal_smooth",
+     "type": "INT",
+     "widget": {
+      "name": "temporal_smooth"
+     },
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "masks",
+     "type": "MASK",
+     "links": [
+      34
+     ]
+    },
+    {
+     "name": "report",
+     "type": "STRING",
+     "links": []
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "H3FaceMaskSAM",
+    "ue_properties": {
+     "widget_ue_connectable": {},
+     "version": "7.8",
+     "input_ue_unconnectable": {}
+    }
+   },
+   "widgets_values": [
+    0.93,
+    0,
+    5
+   ],
+   "color": "#322",
+   "bgcolor": "#533"
+  },
+  {
+   "id": 108,
+   "type": "UNETLoader",
+   "pos": [
+    -1470,
+    405
+   ],
+   "size": [
+    330,
+    90
+   ],
+   "flags": {},
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "unet_name",
+     "type": "COMBO",
+     "widget": {
+      "name": "unet_name"
+     },
+     "link": null
+    },
+    {
+     "name": "weight_dtype",
+     "type": "COMBO",
+     "widget": {
+      "name": "weight_dtype"
+     },
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "MODEL",
+     "type": "MODEL",
+     "links": [
+      11
+     ]
+    }
+   ],
+   "title": "H3 model",
+   "properties": {
+    "cnr_id": "comfy-core",
+    "ver": "0.34.0",
+    "Node name for S&R": "UnetLoaderGGUF",
+    "ue_properties": {
+     "widget_ue_connectable": {},
+     "version": "7.8",
+     "input_ue_unconnectable": {}
+    }
+   },
+   "widgets_values": [
+    "MiniMax H3\\minimax_h3_fl2va_pruned_int8_convrot.safetensors",
+    "default"
+   ],
+   "color": "#232",
+   "bgcolor": "#353"
+  },
+  {
+   "id": 109,
+   "type": "CLIPLoader",
+   "pos": [
+    -1470,
+    565
+   ],
+   "size": [
+    330,
+    120
+   ],
+   "flags": {},
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "clip_name",
+     "type": "COMBO",
+     "widget": {
+      "name": "clip_name"
+     },
+     "link": null
+    },
+    {
+     "name": "type",
+     "type": "COMBO",
+     "widget": {
+      "name": "type"
+     },
+     "link": null
+    },
+    {
+     "name": "device",
+     "shape": 7,
+     "type": "COMBO",
+     "widget": {
+      "name": "device"
+     },
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "CLIP",
+     "type": "CLIP",
+     "links": [
+      2
+     ]
+    }
+   ],
+   "title": "Text encoder",
+   "properties": {
+    "cnr_id": "comfy-core",
+    "ver": "0.34.0",
+    "Node name for S&R": "CLIPLoaderGGUF",
+    "ue_properties": {
+     "widget_ue_connectable": {},
+     "version": "7.8",
+     "input_ue_unconnectable": {}
+    }
+   },
+   "widgets_values": [
+    "qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors",
+    "minimax",
+    "default"
+   ],
+   "color": "#232",
+   "bgcolor": "#353"
+  },
+  {
+   "id": 110,
+   "type": "Note",
+   "pos": [
+    -1470,
+    1480
+   ],
+   "size": [
+    330,
+    330
+   ],
+   "flags": {},
+   "mode": 0,
+   "inputs": [],
+   "outputs": [],
+   "title": "Model / encoder",
+   "properties": {
+    "text": "",
+    "ue_properties": {
+     "widget_ue_connectable": {},
+     "version": "7.8",
+     "input_ue_unconnectable": {}
+    }
+   },
+   "widgets_values": [
+    "MODEL AND TEXT ENCODER\n\nWired: UNETLoader + CLIPLoader, loading pruned int8 weights and an\nnvfp4 text encoder. This is the combination these examples were\nbuilt and tested against.\n\nMuted beside them: UnetLoaderGGUF + CLIPLoaderGGUF, the GGUF route.\nIt needs the ComfyUI-GGUF pack, which is why it is not the default\nhere - but it is a real alternative and fits in less VRAM.\n\nTo use GGUF instead: mute the two loaders above, un-mute these two,\nand connect UnetLoaderGGUF -> LoraLoaderModelOnly and\nCLIPLoaderGGUF -> MiniMax H3 Reference To Video.\n\nWhatever you load, the turbo LoRA and the step count must agree:\nthe 8-step LoRA wired here wants steps=8 on BasicScheduler. A\n4-step LoRA wants 4. Mismatch them and the result is mush or a\nwaste of time."
+   ],
+   "color": "#432",
+   "bgcolor": "#653"
+  },
+  {
+   "id": 111,
+   "type": "Note",
+   "pos": [
+    -1860,
+    1485
+   ],
+   "size": [
+    330,
+    300
+   ],
+   "flags": {},
+   "mode": 0,
+   "inputs": [],
+   "outputs": [],
+   "title": "Audio source",
+   "properties": {
+    "text": "",
+    "ue_properties": {
+     "widget_ue_connectable": {},
+     "version": "7.8",
+     "input_ue_unconnectable": {}
+    }
+   },
+   "widgets_values": [
+    "AUDIO - drives lipsync\n\nWired: the audio track of the source clip, straight off the video\nloader. That is the simple case and needs nothing extra.\n\nMuted beside it: Load Audio (Upload). Un-mute it and wire its\naudio output to BOTH MiniMax H3 Reference To Video and MiniMax H3\nNative Audio Lock, in place of the video's own.\n\nWorth doing when you have an isolated VOCAL stem. H3 shapes the\nmouth from whatever audio it is given, so a full mix - music,\neffects, other voices - is competing with the speech. A vocals-only\ntrack gives cleaner lipsync.\n\nThe audio wired here must cover the same stretch of time as the\nframes being refined, or the mouth will follow the wrong sound."
+   ],
+   "color": "#432",
+   "bgcolor": "#653"
+  },
+  {
+   "id": 112,
+   "type": "H3FaceSelect",
+   "pos": [
+    -1110,
+    405
+   ],
+   "size": [
+    330,
+    841
+   ],
+   "flags": {},
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "identity_reference",
+     "shape": 7,
+     "type": "IMAGE",
+     "link": null
+    },
+    {
+     "name": "identity_clip_vision",
+     "shape": 7,
+     "type": "CLIP_VISION",
+     "link": null
+    },
+    {
+     "name": "video",
+     "type": "STRING",
+     "widget": {
+      "name": "video"
+     },
+     "link": null
+    },
+    {
+     "name": "detector",
+     "type": "COMBO",
+     "widget": {
+      "name": "detector"
+     },
+     "link": null
+    },
+    {
+     "name": "confidence",
+     "type": "FLOAT",
+     "widget": {
+      "name": "confidence"
+     },
+     "link": null
+    },
+    {
+     "name": "select",
+     "type": "COMBO",
+     "widget": {
+      "name": "select"
+     },
+     "link": null
+    },
+    {
+     "name": "select_index",
+     "type": "INT",
+     "widget": {
+      "name": "select_index"
+     },
+     "link": null
+    },
+    {
+     "name": "confirmed_pick",
+     "type": "STRING",
+     "widget": {
+      "name": "confirmed_pick"
+     },
+     "link": null
+    },
+    {
+     "name": "cut_detection",
+     "shape": 7,
+     "type": "COMBO",
+     "widget": {
+      "name": "cut_detection"
+     },
+     "link": null
+    },
+    {
+     "name": "cut_threshold",
+     "shape": 7,
+     "type": "FLOAT",
+     "widget": {
+      "name": "cut_threshold"
+     },
+     "link": null
+    },
+    {
+     "name": "skip_first_frames",
+     "shape": 7,
+     "type": "INT",
+     "widget": {
+      "name": "skip_first_frames"
+     },
+     "link": null
+    },
+    {
+     "name": "frame_load_cap",
+     "shape": 7,
+     "type": "INT",
+     "widget": {
+      "name": "frame_load_cap"
+     },
+     "link": null
+    },
+    {
+     "name": "select_every_nth",
+     "shape": 7,
+     "type": "INT",
+     "widget": {
+      "name": "select_every_nth"
+     },
+     "link": null
+    },
+    {
+     "name": "identity_model",
+     "shape": 7,
+     "type": "COMBO",
+     "widget": {
+      "name": "identity_model"
+     },
+     "link": null
+    },
+    {
+     "name": "identity_threshold",
+     "shape": 7,
+     "type": "FLOAT",
+     "widget": {
+      "name": "identity_threshold"
+     },
+     "link": null
+    },
+    {
+     "name": "X",
+     "shape": 7,
+     "type": "INT",
+     "widget": {
+      "name": "X"
+     },
+     "link": null
+    },
+    {
+     "name": "Y",
+     "shape": 7,
+     "type": "INT",
+     "widget": {
+      "name": "Y"
+     },
+     "link": null
+    },
+    {
+     "name": "frame_index",
+     "shape": 7,
+     "type": "INT",
+     "widget": {
+      "name": "frame_index"
+     },
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "links": [
+      41,
+      42
+     ]
+    },
+    {
+     "name": "audio",
+     "type": "AUDIO",
+     "links": [
+      43,
+      44,
+      45
+     ]
+    },
+    {
+     "name": "face_pick",
+     "type": "H3FACEPICK",
+     "links": [
+      46
+     ]
+    },
+    {
+     "name": "preview",
+     "type": "IMAGE",
+     "links": null
+    },
+    {
+     "name": "report",
+     "type": "STRING",
+     "links": null
+    },
+    {
+     "name": "frame_count",
+     "type": "INT",
+     "links": null
+    },
+    {
+     "name": "fps",
+     "type": "FLOAT",
+     "links": null
+    }
+   ],
+   "properties": {
+    "ue_properties": {
+     "widget_ue_connectable": {},
+     "input_ue_unconnectable": {}
+    },
+    "Node name for S&R": "H3FaceSelect"
+   },
+   "widgets_values": [
+    "<absolute path to your clip>.mp4",
+    "bbox\\face_yolov8m.pt",
+    0.35,
+    "manual",
+    0,
+    "",
+    "auto (pyscenedetect)",
+    3,
+    0,
+    0,
+    1,
+    "insightface",
+    0.28,
+    0,
+    0,
+    0,
+    null,
+    null,
+    null,
+    "",
+    "",
+    ""
+   ]
+  }
+ ],
+ "links": [
+  [
+   2,
+   109,
+   0,
+   9,
+   0,
+   "CLIP"
+  ],
+  [
+   3,
+   4,
+   0,
+   9,
+   1,
+   "VAE"
+  ],
+  [
+   4,
+   5,
+   0,
+   9,
+   2,
+   "VAE"
+  ],
+  [
+   5,
+   6,
+   0,
+   9,
+   3,
+   "IMAGE"
+  ],
+  [
+   6,
+   7,
+   0,
+   9,
+   4,
+   "IMAGE"
+  ],
+  [
+   8,
+   9,
+   1,
+   10,
+   0,
+   "LATENT"
+  ],
+  [
+   9,
+   2,
+   0,
+   10,
+   1,
+   "IMAGE"
+  ],
+  [
+   10,
+   4,
+   0,
+   10,
+   2,
+   "VAE"
+  ],
+  [
+   11,
+   108,
+   0,
+   12,
+   0,
+   "MODEL"
+  ],
+  [
+   12,
+   12,
+   0,
+   13,
+   0,
+   "MODEL"
+  ],
+  [
+   13,
+   10,
+   0,
+   13,
+   1,
+   "LATENT"
+  ],
+  [
+   14,
+   5,
+   0,
+   13,
+   2,
+   "VAE"
+  ],
+  [
+   16,
+   31,
+   2,
+   14,
+   0,
+   "MODEL"
+  ],
+  [
+   17,
+   9,
+   0,
+   14,
+   1,
+   "CONDITIONING"
+  ],
+  [
+   18,
+   31,
+   2,
+   16,
+   0,
+   "MODEL"
+  ],
+  [
+   19,
+   17,
+   0,
+   18,
+   0,
+   "NOISE"
+  ],
+  [
+   20,
+   14,
+   0,
+   18,
+   1,
+   "GUIDER"
+  ],
+  [
+   21,
+   15,
+   0,
+   18,
+   2,
+   "SAMPLER"
+  ],
+  [
+   22,
+   16,
+   0,
+   18,
+   3,
+   "SIGMAS"
+  ],
+  [
+   23,
+   13,
+   1,
+   31,
+   1,
+   "LATENT"
+  ],
+  [
+   24,
+   2,
+   1,
+   31,
+   2,
+   "H3FACEXFORM"
+  ],
+  [
+   25,
+   31,
+   0,
+   18,
+   4,
+   "LATENT"
+  ],
+  [
+   26,
+   18,
+   0,
+   19,
+   0,
+   "LATENT"
+  ],
+  [
+   27,
+   4,
+   0,
+   19,
+   1,
+   "VAE"
+  ],
+  [
+   29,
+   19,
+   0,
+   22,
+   1,
+   "IMAGE"
+  ],
+  [
+   30,
+   2,
+   1,
+   22,
+   2,
+   "H3FACEXFORM"
+  ],
+  [
+   35,
+   22,
+   0,
+   23,
+   0,
+   "IMAGE"
+  ],
+  [
+   37,
+   2,
+   4,
+   9,
+   11,
+   "INT"
+  ],
+  [
+   38,
+   2,
+   5,
+   9,
+   12,
+   "INT"
+  ],
+  [
+   31,
+   2,
+   0,
+   21,
+   0,
+   "IMAGE"
+  ],
+  [
+   32,
+   20,
+   0,
+   21,
+   1,
+   "SAM_MODEL"
+  ],
+  [
+   33,
+   2,
+   1,
+   21,
+   2,
+   "H3FACEXFORM"
+  ],
+  [
+   34,
+   21,
+   0,
+   22,
+   3,
+   "MASK"
+  ],
+  [
+   39,
+   13,
+   0,
+   31,
+   0,
+   "MODEL"
+  ],
+  [
+   40,
+   2,
+   6,
+   9,
+   13,
+   "INT"
+  ],
+  [
+   41,
+   112,
+   0,
+   2,
+   0,
+   "IMAGE"
+  ],
+  [
+   42,
+   112,
+   0,
+   22,
+   0,
+   "IMAGE"
+  ],
+  [
+   43,
+   112,
+   1,
+   9,
+   8,
+   "AUDIO"
+  ],
+  [
+   44,
+   112,
+   1,
+   13,
+   3,
+   "AUDIO"
+  ],
+  [
+   45,
+   112,
+   1,
+   23,
+   1,
+   "AUDIO"
+  ],
+  [
+   46,
+   112,
+   2,
+   2,
+   3,
+   "H3FACEPICK"
+  ]
+ ],
+ "groups": [
+  {
+   "id": 1,
+   "title": "Input + tracking",
+   "bounding": [
+    -2460,
+    255,
+    1740,
+    1886
+   ],
+   "color": "#3f789e",
+   "flags": {}
+  },
+  {
+   "id": 2,
+   "title": "H3 conditioning + latent",
+   "bounding": [
+    -720,
+    255,
+    1155,
+    1010
+   ],
+   "color": "#3f7943",
+   "flags": {}
+  },
+  {
+   "id": 3,
+   "title": "Sample",
+   "bounding": [
+    420,
+    315,
+    675,
+    790
+   ],
+   "color": "#a1309b",
+   "flags": {}
+  },
+  {
+   "id": 4,
+   "title": "Stitch + save",
+   "bounding": [
+    1080,
+    255,
+    1065,
+    945
+   ],
+   "color": "#b58b2a",
+   "flags": {}
+  },
+  {
+   "id": 5,
+   "title": "2. Track + crop (per-frame)",
+   "bounding": [
+    -1125,
+    1301,
+    390,
+    825
+   ],
+   "color": "#3f789e",
+   "flags": {}
+  },
+  {
+   "id": 6,
+   "title": "4. Inject real video -> img2img",
+   "bounding": [
+    -330,
+    315,
+    360,
+    210
+   ],
+   "color": "#3f789e",
+   "flags": {}
+  },
+  {
+   "id": 7,
+   "title": "5b. Per-frame denoise (by face size)",
+   "bounding": [
+    60,
+    565,
+    360,
+    360
+   ],
+   "color": "#3f789e",
+   "flags": {}
+  },
+  {
+   "id": 8,
+   "title": "8b. Face mask (SAM) - masks the INPUT",
+   "bounding": [
+    1095,
+    680,
+    300,
+    255
+   ],
+   "color": "#3f789e",
+   "flags": {}
+  },
+  {
+   "id": 9,
+   "title": "9. Stitch back",
+   "bounding": [
+    1380,
+    315,
+    360,
+    375
+   ],
+   "color": "#3f789e",
+   "flags": {}
+  },
+  {
+   "title": "1. Load video + choose the face",
+   "bounding": [
+    -1125,
+    315,
+    360,
+    946
+   ],
+   "color": "#3f789e",
+   "font_size": 24,
+   "flags": {}
+  }
+ ],
+ "config": {},
+ "extra": {
+  "ds": {
+   "scale": 0.7247295000000011,
+   "offset": [
+    2562.5989129538334,
+    109.27898191819871
+   ]
+  },
+  "ue_links": [],
+  "frontendVersion": "1.48.7",
+  "VHS_latentpreview": false,
+  "VHS_latentpreviewrate": 0,
+  "VHS_MetadataImage": false,
+  "VHS_KeepIntermediate": true
+ },
+ "version": 0.4
+}

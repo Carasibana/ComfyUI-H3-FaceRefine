@@ -51,7 +51,7 @@ body:
       label: Steps to reproduce
       description: The exact sequence, starting from which example workflow you loaded.
       placeholder: |
-        1. Loaded example_workflows/H3_Face_Refine.json
+        1. Loaded example_workflows/H3_Face_Refine_Auto_Select.json
         2. Pointed the Source clip loader at a 362-frame 1280x720 mp4
         3. Set length to 362, left every other value at the shipped default
         4. Queued once — output written, face unchanged

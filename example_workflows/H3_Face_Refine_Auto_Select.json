@@ -1,15 +1,15 @@
 {
  "id": "h3-face-refine-example",
  "revision": 0,
- "last_node_id": 107,
- "last_link_id": 38,
+ "last_node_id": 111,
+ "last_link_id": 40,
  "nodes": [
   {
    "id": 15,
    "type": "KSamplerSelect",
    "pos": [
     435,
-    555
+    550
    ],
    "size": [
     285,
@@ -28,27 +28,20 @@
      ]
     }
    ],
-   "title": "Sampler",
    "properties": {
-    "Node name for S&R": "KSamplerSelect",
-    "ue_properties": {
-     "widget_ue_connectable": {
-      "sampler_name": true
-     },
-     "version": "7.8",
-     "input_ue_unconnectable": {}
-    }
+    "Node name for S&R": "KSamplerSelect"
    },
    "widgets_values": [
     "er_sde"
-   ]
+   ],
+   "title": "Sampler"
   },
   {
    "id": 16,
    "type": "BasicScheduler",
    "pos": [
     435,
-    645
+    680
    ],
    "size": [
     285,
@@ -73,33 +66,24 @@
      ]
     }
    ],
-   "title": "6. DENOISE - the key dial",
    "properties": {
-    "Node name for S&R": "BasicScheduler",
-    "ue_properties": {
-     "widget_ue_connectable": {
-      "scheduler": true,
-      "steps": true,
-      "denoise": true
-     },
-     "version": "7.8",
-     "input_ue_unconnectable": {}
-    }
+    "Node name for S&R": "BasicScheduler"
    },
    "widgets_values": [
     "simple",
-    4,
-    0.45
+    8,
+    0.4
    ],
    "color": "#322",
-   "bgcolor": "#533"
+   "bgcolor": "#533",
+   "title": "6. DENOISE - the key dial"
   },
   {
    "id": 17,
    "type": "RandomNoise",
    "pos": [
     435,
-    825
+    885
    ],
    "size": [
     285,
@@ -118,28 +102,21 @@
      ]
     }
    ],
-   "title": "Noise (fix while testing)",
    "properties": {
-    "Node name for S&R": "RandomNoise",
-    "ue_properties": {
-     "widget_ue_connectable": {
-      "noise_seed": true
-     },
-     "version": "7.8",
-     "input_ue_unconnectable": {}
-    }
+    "Node name for S&R": "RandomNoise"
    },
    "widgets_values": [
     42,
     "fixed"
-   ]
+   ],
+   "title": "Noise (fix while testing)"
   },
   {
    "id": 18,
    "type": "SamplerCustomAdvanced",
    "pos": [
     780,
-    435
+    405
    ],
    "size": [
     300,
@@ -189,23 +166,18 @@
      "links": []
     }
    ],
-   "title": "7. Sample",
    "properties": {
-    "Node name for S&R": "SamplerCustomAdvanced",
-    "ue_properties": {
-     "widget_ue_connectable": {},
-     "version": "7.8",
-     "input_ue_unconnectable": {}
-    }
+    "Node name for S&R": "SamplerCustomAdvanced"
    },
-   "widgets_values": []
+   "widgets_values": [],
+   "title": "7. Sample"
   },
   {
    "id": 22,
    "type": "H3FaceStitch",
    "pos": [
     1395,
-    435
+    405
    ],
    "size": [
     330,
@@ -246,27 +218,13 @@
      ]
     }
    ],
-   "title": "9. Stitch back",
    "properties": {
-    "Node name for S&R": "H3FaceStitch",
-    "ue_properties": {
-     "widget_ue_connectable": {
-      "paste_region": true,
-      "mask_dilation": true,
-      "feather": true,
-      "colour_match": true,
-      "blend": true,
-      "undetected_frames": true,
-      "feather_scales_with_crop": true
-     },
-     "version": "7.8",
-     "input_ue_unconnectable": {}
-    }
+    "Node name for S&R": "H3FaceStitch"
    },
    "widgets_values": [
     "face_only",
-    16,
-    8,
+    24,
+    24,
     1,
     1,
     "fade_out",
@@ -280,7 +238,7 @@
    "type": "VAELoader",
    "pos": [
     -1470,
-    600
+    695
    ],
    "size": [
     330,
@@ -301,19 +259,12 @@
      ]
     }
    ],
-   "title": "Video VAE",
+   "title": "Load VAE — video",
    "properties": {
-    "Node name for S&R": "VAELoader",
-    "ue_properties": {
-     "widget_ue_connectable": {
-      "vae_name": true
-     },
-     "version": "7.8",
-     "input_ue_unconnectable": {}
-    }
+    "Node name for S&R": "VAELoader"
    },
    "widgets_values": [
-    "minimax_h3_video_vae_fp16.safetensors"
+    "MiniMax H3\\minimax_h3_video_vae_fp16.safetensors"
    ],
    "color": "#232",
    "bgcolor": "#353"
@@ -323,7 +274,7 @@
    "type": "VAELoader",
    "pos": [
     -1470,
-    720
+    825
    ],
    "size": [
     330,
@@ -343,19 +294,12 @@
      ]
     }
    ],
-   "title": "Audio VAE",
+   "title": "Load VAE — audio",
    "properties": {
-    "Node name for S&R": "VAELoader",
-    "ue_properties": {
-     "widget_ue_connectable": {
-      "vae_name": true
-     },
-     "version": "7.8",
-     "input_ue_unconnectable": {}
-    }
+    "Node name for S&R": "VAELoader"
    },
    "widgets_values": [
-    "minimax_h3_audio_vae_fp32.safetensors"
+    "MiniMax H3\\minimax_h3_audio_vae_fp32.safetensors"
    ],
    "color": "#232",
    "bgcolor": "#353"
@@ -365,7 +309,7 @@
    "type": "VHS_LoadAudioUpload",
    "pos": [
     -1860,
-    810
+    1205
    ],
    "size": [
     330,
@@ -373,16 +317,13 @@
    ],
    "flags": {},
    "order": 4,
-   "mode": 0,
+   "mode": 2,
    "inputs": [],
    "outputs": [
     {
      "name": "audio",
      "type": "AUDIO",
-     "links": [
-      7,
-      15
-     ]
+     "links": []
     },
     {
      "name": "duration",
@@ -390,18 +331,8 @@
      "links": null
     }
    ],
-   "title": "VOCALS - drives lipsync",
    "properties": {
-    "Node name for S&R": "VHS_LoadAudioUpload",
-    "ue_properties": {
-     "widget_ue_connectable": {
-      "audio": true,
-      "start_time": true,
-      "duration": true
-     },
-     "version": "7.8",
-     "input_ue_unconnectable": {}
-    }
+    "Node name for S&R": "VHS_LoadAudioUpload"
    },
    "widgets_values": {
     "audio": "your_clip_VOCALS.mp3",
@@ -417,18 +348,19 @@
     }
    },
    "color": "#233",
-   "bgcolor": "#355"
+   "bgcolor": "#355",
+   "title": "Separate audio — optional (muted)"
   },
   {
    "id": 7,
    "type": "LoadImage",
    "pos": [
     -1860,
-    630
+    805
    ],
    "size": [
     330,
-    120
+    330
    ],
    "flags": {},
    "order": 5,
@@ -448,17 +380,9 @@
      "links": []
     }
    ],
-   "title": "Ref 2 - optional (wardrobe etc)",
+   "title": "Load Image — Ref 2, optional (wardrobe etc)",
    "properties": {
-    "Node name for S&R": "LoadImage",
-    "ue_properties": {
-     "widget_ue_connectable": {
-      "image": true,
-      "upload": true
-     },
-     "version": "7.8",
-     "input_ue_unconnectable": {}
-    }
+    "Node name for S&R": "LoadImage"
    },
    "widgets_values": [
     "second_reference.png",
@@ -472,7 +396,7 @@
    "type": "Note",
    "pos": [
     -2445,
-    630
+    625
    ],
    "size": [
     525,
@@ -485,12 +409,7 @@
    "outputs": [],
    "title": "Canvas size",
    "properties": {
-    "text": "",
-    "ue_properties": {
-     "widget_ue_connectable": {},
-     "version": "7.8",
-     "input_ue_unconnectable": {}
-    }
+    "text": ""
    },
    "widgets_values": [
     "CANVAS SIZE\n\ncanvas_mode decides the resolution H3 generates at:\n\n  manual            - use canvas_width/height exactly as typed\n  auto_no_downscale - size from the LARGEST crop in the clip, so no frame is\n                      ever downscaled. Can get expensive on clips containing\n                      close-ups.\n  auto_capped_768   - same, but clamped to 768 (H3's native short edge, and a\n                      sane VRAM ceiling). This is what ships here.\n\ncanvas_w / canvas_h are WIRED into the H3 node's width/height on purpose. In the auto modes the tracker chooses the size, and if the H3 node disagrees the latent shapes differ and injection refuses. Do not retype them by hand.\n\nWatch the tracker's report for \"magnification < 1.0x\": that means the crop is being DOWNSCALED into the canvas and real detail is being thrown away. Raise the canvas, or skip the clip if it is close-up throughout.\n\nCost scales with canvas AREA x frames, so 768 is 2.25x the latent tokens of 512."
@@ -503,7 +422,7 @@
    "type": "MiniMaxH3ReferenceToVideo",
    "pos": [
     -705,
-    435
+    405
    ],
    "size": [
     360,
@@ -590,6 +509,14 @@
       "name": "height"
      },
      "link": 38
+    },
+    {
+     "name": "length",
+     "type": "INT",
+     "widget": {
+      "name": "length"
+     },
+     "link": 40
     }
    ],
    "outputs": [
@@ -608,37 +535,26 @@
      ]
     }
    ],
-   "title": "3. Conditioning + EMPTY AV latent",
    "properties": {
-    "Node name for S&R": "MiniMaxH3ReferenceToVideo",
-    "ue_properties": {
-     "widget_ue_connectable": {
-      "prompt": true,
-      "width": true,
-      "height": true,
-      "length": true,
-      "ref_image_size": true
-     },
-     "version": "7.8",
-     "input_ue_unconnectable": {}
-    }
+    "Node name for S&R": "MiniMaxH3ReferenceToVideo"
    },
    "widgets_values": [
     "<paste the clip's own prompt here>",
-    512,
-    512,
+    768,
+    768,
     362,
     "match"
    ],
    "color": "#232",
-   "bgcolor": "#353"
+   "bgcolor": "#353",
+   "title": "3. Conditioning + EMPTY AV latent"
   },
   {
    "id": 10,
    "type": "H3InjectVideoLatent",
    "pos": [
     -315,
-    450
+    405
    ],
    "size": [
     330,
@@ -678,14 +594,8 @@
      "links": []
     }
    ],
-   "title": "4. Inject real video -> img2img",
    "properties": {
-    "Node name for S&R": "H3InjectVideoLatent",
-    "ue_properties": {
-     "widget_ue_connectable": {},
-     "version": "7.8",
-     "input_ue_unconnectable": {}
-    }
+    "Node name for S&R": "H3InjectVideoLatent"
    },
    "widgets_values": [],
    "color": "#322",
@@ -696,7 +606,7 @@
    "type": "Note",
    "pos": [
     -315,
-    600
+    595
    ],
    "size": [
     330,
@@ -708,13 +618,7 @@
    "inputs": [],
    "outputs": [],
    "title": "Inject Video Latent",
-   "properties": {
-    "ue_properties": {
-     "widget_ue_connectable": {},
-     "version": "7.8",
-     "input_ue_unconnectable": {}
-    }
-   },
+   "properties": {},
    "widgets_values": [
     "WHY THIS NODE EXISTS\n\nH3's stock nodes ALWAYS build a zeros latent. References are conditioning that is re-injected every step - never a starting point. So there is no video-to-video path out of the box.\n\nThis encodes the real cropped frames into the VIDEO stream of the joint AV latent, leaving the audio stream alone. That turns SamplerCustomAdvanced + denoise<1.0 into ordinary img2img.\n\nFrame count must sit on H3's 17k+5 grid (5, 22, 39 ... 175, 226, 362). Clips generated by H3 already do."
    ],
@@ -726,7 +630,7 @@
    "type": "Note",
    "pos": [
     -705,
-    855
+    850
    ],
    "size": [
     360,
@@ -738,13 +642,7 @@
    "inputs": [],
    "outputs": [],
    "title": "Why per-frame crop",
-   "properties": {
-    "ue_properties": {
-     "widget_ue_connectable": {},
-     "version": "7.8",
-     "input_ue_unconnectable": {}
-    }
-   },
+   "properties": {},
    "widgets_values": [
     "PER-FRAME CROPPING IS MANDATORY\n\nA single fixed crop is sized by the widest frame. On a push-in the face is then STILL SMALL inside that crop - on exactly the frames that needed help. The benefit vanishes where it matters.\n\nSo the crop SIZE varies per frame, holding the face at a constant fraction of every crop (crop_factor). Every crop is then resized to ONE canvas, because H3 generates a single fixed WxH for a whole sequence.\n\nResult: the face is always large in H3's input, however small it was in the source.\n\nSMOOTHING\nsize_smooth_window (51) is deliberately larger than smooth_window (21). Size jitter makes the crop breathe, which changes the resample factor every frame and reads as shimmer.\n\ngaussian beats savgol here - polynomial fits preserve sharp features by design, which is the opposite of what you want."
    ],
@@ -756,7 +654,7 @@
    "type": "MiniMaxH3NativeAudioLock",
    "pos": [
     75,
-    390
+    405
    ],
    "size": [
     330,
@@ -792,8 +690,7 @@
      "name": "model",
      "type": "MODEL",
      "links": [
-      16,
-      18
+      39
      ]
     },
     {
@@ -809,25 +706,20 @@
      "links": []
     }
    ],
-   "title": "5. Lock audio -> LIPSYNC",
    "properties": {
-    "Node name for S&R": "MiniMaxH3NativeAudioLock",
-    "ue_properties": {
-     "widget_ue_connectable": {},
-     "version": "7.8",
-     "input_ue_unconnectable": {}
-    }
+    "Node name for S&R": "MiniMaxH3NativeAudioLock"
    },
    "widgets_values": [],
    "color": "#232",
-   "bgcolor": "#353"
+   "bgcolor": "#353",
+   "title": "5. Lock audio -> LIPSYNC"
   },
   {
    "id": 31,
    "type": "H3PerFrameDenoise",
    "pos": [
     75,
-    555
+    655
    ],
    "size": [
     330,
@@ -837,6 +729,11 @@
    "order": 25,
    "mode": 0,
    "inputs": [
+    {
+     "name": "model",
+     "type": "MODEL",
+     "link": 39
+    },
     {
      "name": "av_latent",
      "type": "LATENT",
@@ -860,27 +757,21 @@
      "name": "report",
      "type": "STRING",
      "links": []
+    },
+    {
+     "name": "model",
+     "type": "MODEL",
+     "links": [
+      16,
+      18
+     ]
     }
    ],
-   "title": "5b. Per-frame denoise (by face size)",
    "properties": {
-    "Node name for S&R": "H3PerFrameDenoise",
-    "ue_properties": {
-     "widget_ue_connectable": {
-      "strength_small_face": true,
-      "strength_large_face": true,
-      "scale_mode": true,
-      "face_px_small": true,
-      "face_px_large": true,
-      "gamma": true,
-      "smooth_frames": true
-     },
-     "version": "7.8",
-     "input_ue_unconnectable": {}
-    }
+    "Node name for S&R": "H3PerFrameDenoise"
    },
    "widgets_values": [
-    0.8,
+    1.0,
     0.35,
     "absolute_px",
     30,
@@ -896,7 +787,7 @@
    "type": "Note",
    "pos": [
     75,
-    840
+    980
    ],
    "size": [
     330,
@@ -908,13 +799,7 @@
    "inputs": [],
    "outputs": [],
    "title": "How lipsync works",
-   "properties": {
-    "ue_properties": {
-     "widget_ue_connectable": {},
-     "version": "7.8",
-     "input_ue_unconnectable": {}
-    }
-   },
+   "properties": {},
    "widgets_values": [
     "LIPSYNC\n\nH3 is a JOINT audio-video model. NativeAudioLock:\n  1. encodes real audio into the AUDIO stream of the AV latent\n     (auto-resamples to the VAE's 32kHz - source is usually 48k)\n  2. sets noise_mask = ones(video) / zeros(audio)\n     so ONLY video denoises\n  3. the video branch cross-attends to that fixed audio\n\nThat is what shapes the mouth.\n\nFeed it the VOCALS track, not the full mix - cleaner signal.\n\nThe ORIGINAL audio goes separately into the save node at the far right. Two different audio paths, do not confuse them."
    ],
@@ -926,7 +811,7 @@
    "type": "Note",
    "pos": [
     780,
-    630
+    625
    ],
    "size": [
     300,
@@ -938,15 +823,9 @@
    "inputs": [],
    "outputs": [],
    "title": "DENOISE - read before changing",
-   "properties": {
-    "ue_properties": {
-     "widget_ue_connectable": {},
-     "version": "7.8",
-     "input_ue_unconnectable": {}
-    }
-   },
+   "properties": {},
    "widgets_values": [
-    "DENOISE - THE CRITICAL DIAL\n\nDO NOT carry values over from SDXL-family models. H3 is FLOW MATCHING with a large sigma shift, so the same number means something very different.\n\nsigma = shift*t / (1 + (shift-1)*t)\n\nAt the default shift of 12:\n  denoise 0.02 -> effective 0.197\n  denoise 0.05 -> effective 0.387\n  denoise 0.15 -> effective ~0.66\n  denoise 0.25 -> effective 0.800\n\nThis graph ships denoise 0.45 as a BASE, because it is not applied flat. Node \"3b. Per-frame denoise\" scales it DOWN per frame by face size: small faces keep close to the full 0.45 and get synthesised, large faces drop to ~0.35x of it and keep the detail they already have.\n\nBase and scaling are tuned TOGETHER. If you bypass the per-frame node, drop the base a long way (0.15-0.25) or every large face gets rewritten.\n\nToo low: nothing changes.\nToo high: the head starts drifting relative to the body - a content problem no mask can hide.\n\nNOTE steps and denoise are INDEPENDENT. BasicScheduler builds a (steps/denoise)-long full-range schedule and keeps the lowest steps+1 sigmas, so 4 steps with a turbo LoRA is both fast and gentle.\n\nDo NOT use SplitSigmas for this - on a 4-step schedule at shift 12 even the last split point is already sigma 0.800."
+    "DENOISE - THE CRITICAL DIAL\n\nDO NOT carry values over from SDXL-family models. H3 is FLOW MATCHING with a large sigma shift, so the same number means something very different.\n\nsigma = shift*t / (1 + (shift-1)*t)\n\nAt the default shift of 12:\n  denoise 0.02 -> effective 0.197\n  denoise 0.05 -> effective 0.387\n  denoise 0.15 -> effective ~0.68\n  denoise 0.25 -> effective 0.800\n\nThis graph ships denoise 0.40 as a BASE, because it is not applied flat. The H3 Per-Frame Denoise node scales it DOWN per frame by face size: small faces keep close to the full 0.40 and get synthesised, large faces drop to ~0.35x of it and keep the detail they already have.\n\nBase and scaling are tuned TOGETHER. If you bypass the per-frame node, drop the base a long way (0.15-0.25) or every large face gets rewritten.\n\nToo low: nothing changes.\nToo high: the head starts drifting relative to the body - a content problem no mask can hide.\n\nNOTE steps and denoise are INDEPENDENT. BasicScheduler builds a (steps/denoise)-long full-range schedule and keeps the lowest steps+1 sigmas, so 8 steps with the turbo LoRA this graph ships is both fast and gentle.\n\nDo NOT use SplitSigmas for this - on a short schedule at shift 12 even the last split point is already sigma 0.800."
    ],
    "color": "#432",
    "bgcolor": "#653"
@@ -956,7 +835,7 @@
    "type": "BasicGuider",
    "pos": [
     435,
-    435
+    405
    ],
    "size": [
     285,
@@ -986,23 +865,18 @@
      ]
     }
    ],
-   "title": "Guider",
    "properties": {
-    "Node name for S&R": "BasicGuider",
-    "ue_properties": {
-     "widget_ue_connectable": {},
-     "version": "7.8",
-     "input_ue_unconnectable": {}
-    }
+    "Node name for S&R": "BasicGuider"
    },
-   "widgets_values": []
+   "widgets_values": [],
+   "title": "Guider"
   },
   {
    "id": 19,
    "type": "VAEDecode",
    "pos": [
     1110,
-    390
+    405
    ],
    "size": [
     255,
@@ -1032,25 +906,20 @@
      ]
     }
    ],
-   "title": "8. Decode refined crops",
    "properties": {
-    "Node name for S&R": "VAEDecode",
-    "ue_properties": {
-     "widget_ue_connectable": {},
-     "version": "7.8",
-     "input_ue_unconnectable": {}
-    }
+    "Node name for S&R": "VAEDecode"
    },
    "widgets_values": [],
    "color": "#232",
-   "bgcolor": "#353"
+   "bgcolor": "#353",
+   "title": "8. Decode refined crops"
   },
   {
    "id": 104,
    "type": "Note",
    "pos": [
     1395,
-    750
+    760
    ],
    "size": [
     330,
@@ -1062,15 +931,9 @@
    "inputs": [],
    "outputs": [],
    "title": "Stitch + SAM mask",
-   "properties": {
-    "ue_properties": {
-     "widget_ue_connectable": {},
-     "version": "7.8",
-     "input_ue_unconnectable": {}
-    }
-   },
+   "properties": {},
    "widgets_values": [
-    "STITCH - SAM mask variant\n\nREQUIRES ComfyUI-Impact-Pack (for SAMLoader) and a SAM model in models/sams/.\nIf you would rather not add that dependency, use H3_Face_Refine.json\ninstead - it uses a rect mask and needs neither.\n\nKEY POINT: the wide crop exists to give the SAMPLER CONTEXT. It is NOT what gets\npasted. Only the face region composites; everything else keeps its original pixels.\n\nThe 'masks' input OVERRIDES paste_region with a true face-shaped mask, so the blend\nfalls on the jaw and hairline instead of an arbitrary rectangle.\n\nFEATHER IS IN SOURCE PIXELS. With a SAM mask use a SMALL feather (4-8; this graph\nships 8). A rect mask needs far more (~24).\n\nSAM MASKS THE INPUT, NEVER THE OUTPUT. The mask node takes the TRACKER's crops, not\nthe decoded result - the same way FaceDetailer computes its mask from the source\nimage. Mask the generated result instead and, if the model nudges the face inward,\nthe mask traces the NEW smaller silhouette while the original face pokes out past it\n- most visibly the nose on profile shots. It is also cheaper: no dependency on the\nsampler, so SAM need not be resident alongside the video model.\n\nWORTH KNOWING: a rect mask often BEATS this. SAM traces the face tightly, so any\ndrift in the refined face lands right on the silhouette. A slightly looser rect puts\nthe seam in hair and background where it reads far less."
+    "STITCH + the optional SAM mask\n\nThe two nodes to the left - SAMLoader and H3 Face Mask (SAM) - ship MUTED, and stay\nwired. Unmute both (Ctrl+M) to swap the rect paste mask for a true face-shaped one.\nMuted, this graph needs no SAM model. Unmuted it also needs one, in models/sams/.\nComfyUI-Impact-Pack is required either way: its subpack registers the ultralytics\nmodel folders, and this graph's detector values use that naming.\n\nFEATHER IS IN SOURCE PIXELS, and the two masks want very different values. This graph\nships 24 for the rect. With a SAM mask drop it to 4-8.\n\nKEY POINT: the wide crop exists to give the SAMPLER CONTEXT. It is NOT what gets\npasted. Only the face region composites; everything else keeps its original pixels.\n\nSAM MASKS THE INPUT, NEVER THE OUTPUT. The mask node takes the TRACKER's crops, not\nthe decoded result - the same way FaceDetailer computes its mask from the source\nimage. Mask the generated result instead and, if the model nudges the face inward,\nthe mask traces the NEW smaller silhouette while the original face pokes out past it\n- most visibly the nose on profile shots. It is also cheaper: no dependency on the\nsampler, so SAM need not be resident alongside the video model.\n\nWORTH KNOWING: a rect mask often BEATS SAM. SAM traces the face tightly, so any drift\nin the refined face lands right on the silhouette. A slightly looser rect puts the\nseam in hair and background where it reads far less. That is why it is the default."
    ],
    "color": "#432",
    "bgcolor": "#653"
@@ -1080,11 +943,11 @@
    "type": "VHS_VideoCombine",
    "pos": [
     1740,
-    435
+    405
    ],
    "size": [
     390,
-    345
+    500
    ],
    "flags": {},
    "order": 29,
@@ -1121,25 +984,8 @@
      "links": []
     }
    ],
-   "title": "10. Save (ORIGINAL audio)",
    "properties": {
-    "Node name for S&R": "VHS_VideoCombine",
-    "ue_properties": {
-     "widget_ue_connectable": {
-      "frame_rate": true,
-      "loop_count": true,
-      "filename_prefix": true,
-      "format": true,
-      "pingpong": true,
-      "save_output": true,
-      "pix_fmt": true,
-      "crf": true,
-      "save_metadata": true,
-      "trim_to_audio": true
-     },
-     "version": "7.8",
-     "input_ue_unconnectable": {}
-    }
+    "Node name for S&R": "VHS_VideoCombine"
    },
    "widgets_values": {
     "frame_rate": 24,
@@ -1155,14 +1001,15 @@
     "videopreview": ""
    },
    "color": "#233",
-   "bgcolor": "#355"
+   "bgcolor": "#355",
+   "title": "10. Save (ORIGINAL audio)"
   },
   {
    "id": 105,
    "type": "Note",
    "pos": [
     1740,
-    825
+    975
    ],
    "size": [
     390,
@@ -1174,13 +1021,7 @@
    "inputs": [],
    "outputs": [],
    "title": "Read each clip's own settings",
-   "properties": {
-    "ue_properties": {
-     "widget_ue_connectable": {},
-     "version": "7.8",
-     "input_ue_unconnectable": {}
-    }
-   },
+   "properties": {},
    "widgets_values": [
     "PER-CLIP SETTINGS\n\nClips from one batch are often NOT uniform. Read each clip's OWN embedded workflow rather than assuming:\n\n  ffprobe -v error -show_entries format_tags=prompt -of json yourclip.mp4\n\nThings that commonly vary within a single batch: step count, sampler, whether a turbo LoRA was used at all, and how many reference images were attached.\n\nMirror the clip's own steps / sampler / LoRA / refs here, and change only the denoise settings."
    ],
@@ -1192,7 +1033,7 @@
    "type": "UnetLoaderGGUF",
    "pos": [
     -1470,
-    855
+    1130
    ],
    "size": [
     330,
@@ -1200,40 +1041,31 @@
    ],
    "flags": {},
    "order": 13,
-   "mode": 0,
+   "mode": 2,
    "inputs": [],
    "outputs": [
     {
      "name": "MODEL",
      "type": "MODEL",
-     "links": [
-      11
-     ]
+     "links": []
     }
    ],
-   "title": "H3 model",
    "properties": {
-    "Node name for S&R": "UnetLoaderGGUF",
-    "ue_properties": {
-     "widget_ue_connectable": {
-      "unet_name": true
-     },
-     "version": "7.8",
-     "input_ue_unconnectable": {}
-    }
+    "Node name for S&R": "UnetLoaderGGUF"
    },
    "widgets_values": [
     "minimaxH3GGUFFl2vaRef2va_v10.gguf"
    ],
    "color": "#232",
-   "bgcolor": "#353"
+   "bgcolor": "#353",
+   "title": "H3 model — GGUF alternative (muted)"
   },
   {
    "id": 12,
    "type": "LoraLoaderModelOnly",
    "pos": [
     -1470,
-    990
+    955
    ],
    "size": [
     330,
@@ -1258,35 +1090,27 @@
      ]
     }
    ],
-   "title": "Turbo LoRA @ 0.75",
    "properties": {
-    "Node name for S&R": "LoraLoaderModelOnly",
-    "ue_properties": {
-     "widget_ue_connectable": {
-      "lora_name": true,
-      "strength_model": true
-     },
-     "version": "7.8",
-     "input_ue_unconnectable": {}
-    }
+    "Node name for S&R": "LoraLoaderModelOnly"
    },
    "widgets_values": [
-    "minimax_h3_fl2v_lightx2v_turbo_4step_v0.1_comfy.safetensors",
-    0.75
+    "MiniMax H3\\minimax_h3_fl2v_turbo_8step_v1.0_comfyui_bf16.safetensors",
+    1.0
    ],
    "color": "#232",
-   "bgcolor": "#353"
+   "bgcolor": "#353",
+   "title": "Turbo LoRA — steps must match"
   },
   {
    "id": 6,
    "type": "LoadImage",
    "pos": [
     -1860,
-    450
+    405
    ],
    "size": [
     330,
-    105
+    330
    ],
    "flags": {},
    "order": 14,
@@ -1306,17 +1130,9 @@
      "links": []
     }
    ],
-   "title": "Ref 1 - character identity",
+   "title": "Load Image — Ref 1, character identity",
    "properties": {
-    "Node name for S&R": "LoadImage",
-    "ue_properties": {
-     "widget_ue_connectable": {
-      "image": true,
-      "upload": true
-     },
-     "version": "7.8",
-     "input_ue_unconnectable": {}
-    }
+    "Node name for S&R": "LoadImage"
    },
    "widgets_values": [
     "character_reference.png",
@@ -1330,7 +1146,7 @@
    "type": "CLIPLoaderGGUF",
    "pos": [
     -1470,
-    450
+    1260
    ],
    "size": [
     330,
@@ -1338,46 +1154,36 @@
    ],
    "flags": {},
    "order": 15,
-   "mode": 0,
+   "mode": 2,
    "inputs": [],
    "outputs": [
     {
      "name": "CLIP",
      "type": "CLIP",
-     "links": [
-      2
-     ]
+     "links": []
     }
    ],
-   "title": "Text encoder",
    "properties": {
-    "Node name for S&R": "CLIPLoaderGGUF",
-    "ue_properties": {
-     "widget_ue_connectable": {
-      "clip_name": true,
-      "type": true
-     },
-     "version": "7.8",
-     "input_ue_unconnectable": {}
-    }
+    "Node name for S&R": "CLIPLoaderGGUF"
    },
    "widgets_values": [
-    "qwen3vl_32b_minimax_h3-Q4_K_M.gguf",
+    "MiniMax H3\\qwen3vl_32b_minimax_h3-Q4_K_M.gguf",
     "minimax"
    ],
    "color": "#232",
-   "bgcolor": "#353"
+   "bgcolor": "#353",
+   "title": "Text encoder — GGUF alternative (muted)"
   },
   {
    "id": 1,
    "type": "VHS_LoadVideoPath",
    "pos": [
     -1110,
-    435
+    405
    ],
    "size": [
     330,
-    286
+    420
    ],
    "flags": {},
    "order": 16,
@@ -1414,6 +1220,8 @@
      "name": "audio",
      "type": "AUDIO",
      "links": [
+      7,
+      15,
       36
      ]
     },
@@ -1423,23 +1231,8 @@
      "links": []
     }
    ],
-   "title": "1. Source clip",
    "properties": {
-    "Node name for S&R": "VHS_LoadVideoPath",
-    "ue_properties": {
-     "widget_ue_connectable": {
-      "video": true,
-      "force_rate": true,
-      "custom_width": true,
-      "custom_height": true,
-      "frame_load_cap": true,
-      "skip_first_frames": true,
-      "select_every_nth": true,
-      "format": true
-     },
-     "version": "7.8",
-     "input_ue_unconnectable": {}
-    }
+    "Node name for S&R": "VHS_LoadVideoPath"
    },
    "widgets_values": {
     "video": "<absolute path to your clip>.mp4",
@@ -1465,14 +1258,15 @@
     }
    },
    "color": "#233",
-   "bgcolor": "#355"
+   "bgcolor": "#355",
+   "title": "1. Source clip"
   },
   {
    "id": 2,
    "type": "H3FaceTrackCrop",
    "pos": [
     -1110,
-    780
+    955
    ],
    "size": [
     360,
@@ -1537,45 +1331,22 @@
      ]
     },
     {
-     "name": "face_index_preview",
-     "type": "IMAGE",
-     "links": []
+     "name": "frame_count",
+     "type": "INT",
+     "links": [
+      40
+     ]
     }
    ],
-   "title": "2. Track + crop  (per-frame)",
    "properties": {
-    "Node name for S&R": "H3FaceTrackCrop",
-    "ue_properties": {
-     "widget_ue_connectable": {
-      "detector": true,
-      "confidence": true,
-      "crop_factor": true,
-      "canvas_width": true,
-      "canvas_height": true,
-      "canvas_mode": true,
-      "smooth_window": true,
-      "size_smooth_window": true,
-      "smooth_method": true,
-      "size_mode": true,
-      "identity_track": true,
-      "identity_threshold": true,
-      "select": true,
-      "fallback_detector": true,
-      "fallback_head_frac": true,
-      "select_order": true,
-      "select_index": true,
-      "identity_model": true
-     },
-     "version": "7.8",
-     "input_ue_unconnectable": {}
-    }
+    "Node name for S&R": "H3FaceTrackCrop"
    },
    "widgets_values": [
     "bbox\\face_yolov8m.pt",
     0.35,
     3,
-    512,
-    512,
+    768,
+    768,
     "auto_capped_768",
     21,
     51,
@@ -1583,12 +1354,17 @@
     "per_frame",
     true,
     0.28,
-    "largest",
+    "largest_face",
     "segm\\person_yolov8m-seg.pt",
     0.5,
-    "descending",
     0,
-    "insightface"
+    "insightface",
+    "none",
+    3,
+    "off",
+    0,
+    0,
+    0
    ],
    "color": "#322",
    "bgcolor": "#533"
@@ -1598,7 +1374,7 @@
    "type": "Note",
    "pos": [
     -2445,
-    435
+    405
    ],
    "size": [
     525,
@@ -1610,13 +1386,7 @@
    "inputs": [],
    "outputs": [],
    "title": "READ ME FIRST",
-   "properties": {
-    "ue_properties": {
-     "widget_ue_connectable": {},
-     "version": "7.8",
-     "input_ue_unconnectable": {}
-    }
-   },
+   "properties": {},
    "widgets_values": [
     "WHY THIS EXISTS\n\nMiniMax H3 renders faces poorly when the head is a SMALL FRACTION OF THE FRAME. That is a property of head-size-in-frame, not of resolution - it persists at 720p and above.\n\nSo no upscaler fixes it. SeedVR2 and friends sharpen what is already there; they cannot synthesise facial structure that was never generated.\n\nThe fix: crop to the face so it fills the frame, let H3 re-generate it at LOW denoise so it stays frame-aligned, then composite back."
    ],
@@ -1627,8 +1397,8 @@
    "id": 20,
    "type": "SAMLoader",
    "pos": [
-    1080,
-    555
+    1110,
+    550
    ],
    "size": [
     270,
@@ -1636,7 +1406,7 @@
    ],
    "flags": {},
    "order": 20,
-   "mode": 0,
+   "mode": 2,
    "inputs": [],
    "outputs": [
     {
@@ -1654,16 +1424,16 @@
     "sam_vit_b_01ec64.pth",
     "AUTO"
    ],
-   "title": "SAM model (Impact Pack)",
    "color": "#432",
-   "bgcolor": "#653"
+   "bgcolor": "#653",
+   "title": "SAM model (Impact Pack)"
   },
   {
    "id": 21,
    "type": "H3FaceMaskSAM",
    "pos": [
-    1080,
-    690
+    1110,
+    762
    ],
    "size": [
     270,
@@ -1671,7 +1441,7 @@
    ],
    "flags": {},
    "order": 21,
-   "mode": 0,
+   "mode": 2,
    "inputs": [
     {
      "name": "crops",
@@ -1711,9 +1481,131 @@
     0,
     5
    ],
-   "title": "8b. Face mask (SAM) - masks the INPUT",
    "color": "#322",
    "bgcolor": "#533"
+  },
+  {
+   "id": 108,
+   "type": "UNETLoader",
+   "pos": [
+    -1470,
+    405
+   ],
+   "size": [
+    330,
+    60
+   ],
+   "flags": {},
+   "order": 13,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "MODEL",
+     "type": "MODEL",
+     "links": [
+      11
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "UnetLoaderGGUF"
+   },
+   "widgets_values": [
+    "MiniMax H3\\minimax_h3_fl2va_pruned_int8_convrot.safetensors",
+    "default"
+   ],
+   "color": "#232",
+   "bgcolor": "#353",
+   "title": "H3 model"
+  },
+  {
+   "id": 109,
+   "type": "CLIPLoader",
+   "pos": [
+    -1470,
+    535
+   ],
+   "size": [
+    330,
+    90
+   ],
+   "flags": {},
+   "order": 15,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "CLIP",
+     "type": "CLIP",
+     "links": [
+      2
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "CLIPLoaderGGUF"
+   },
+   "widgets_values": [
+    "qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors",
+    "minimax",
+    "default"
+   ],
+   "color": "#232",
+   "bgcolor": "#353",
+   "title": "Text encoder"
+  },
+  {
+   "id": 110,
+   "type": "Note",
+   "pos": [
+    -1470,
+    1420
+   ],
+   "size": [
+    330,
+    330
+   ],
+   "flags": {},
+   "order": 0,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [],
+   "title": "Model / encoder",
+   "properties": {
+    "text": ""
+   },
+   "widgets_values": [
+    "MODEL AND TEXT ENCODER\n\nWired: UNETLoader + CLIPLoader, loading pruned int8 weights and an\nnvfp4 text encoder. This is the combination these examples were\nbuilt and tested against.\n\nMuted beside them: UnetLoaderGGUF + CLIPLoaderGGUF, the GGUF route.\nIt needs the ComfyUI-GGUF pack, which is why it is not the default\nhere - but it is a real alternative and fits in less VRAM.\n\nTo use GGUF instead: mute the two loaders above, un-mute these two,\nand connect UnetLoaderGGUF -> LoraLoaderModelOnly and\nCLIPLoaderGGUF -> MiniMax H3 Reference To Video.\n\nWhatever you load, the turbo LoRA and the step count must agree:\nthe 8-step LoRA wired here wants steps=8 on BasicScheduler. A\n4-step LoRA wants 4. Mismatch them and the result is mush or a\nwaste of time."
+   ],
+   "color": "#432",
+   "bgcolor": "#653"
+  },
+  {
+   "id": 111,
+   "type": "Note",
+   "pos": [
+    -1860,
+    1485
+   ],
+   "size": [
+    330,
+    300
+   ],
+   "flags": {},
+   "order": 0,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [],
+   "title": "Audio source",
+   "properties": {
+    "text": ""
+   },
+   "widgets_values": [
+    "AUDIO - drives lipsync\n\nWired: the audio track of the source clip, straight off the video\nloader. That is the simple case and needs nothing extra.\n\nMuted beside it: Load Audio (Upload). Un-mute it and wire its\naudio output to BOTH MiniMax H3 Reference To Video and MiniMax H3\nNative Audio Lock, in place of the video's own.\n\nWorth doing when you have an isolated VOCAL stem. H3 shapes the\nmouth from whatever audio it is given, so a full mix - music,\neffects, other voices - is competing with the speech. A vocals-only\ntrack gives cleaner lipsync.\n\nThe audio wired here must cover the same stretch of time as the\nframes being refined, or the mouth will follow the wrong sound."
+   ],
+   "color": "#432",
+   "bgcolor": "#653"
   }
  ],
  "links": [
@@ -1727,7 +1619,7 @@
   ],
   [
    2,
-   3,
+   109,
    0,
    9,
    0,
@@ -1767,8 +1659,8 @@
   ],
   [
    7,
-   8,
-   0,
+   1,
+   2,
    9,
    8,
    "AUDIO"
@@ -1799,7 +1691,7 @@
   ],
   [
    11,
-   11,
+   108,
    0,
    12,
    0,
@@ -1831,16 +1723,16 @@
   ],
   [
    15,
-   8,
-   0,
+   1,
+   2,
    13,
    3,
    "AUDIO"
   ],
   [
    16,
-   13,
-   0,
+   31,
+   2,
    14,
    0,
    "MODEL"
@@ -1855,8 +1747,8 @@
   ],
   [
    18,
-   13,
-   0,
+   31,
+   2,
    16,
    0,
    "MODEL"
@@ -1898,7 +1790,7 @@
    13,
    1,
    31,
-   0,
+   1,
    "LATENT"
   ],
   [
@@ -1906,7 +1798,7 @@
    2,
    1,
    31,
-   1,
+   2,
    "H3FACEXFORM"
   ],
   [
@@ -2020,6 +1912,22 @@
    22,
    3,
    "MASK"
+  ],
+  [
+   39,
+   13,
+   0,
+   31,
+   0,
+   "MODEL"
+  ],
+  [
+   40,
+   2,
+   6,
+   9,
+   12,
+   "INT"
   ]
  ],
  "groups": [
@@ -2027,10 +1935,10 @@
    "id": 1,
    "title": "Input + tracking",
    "bounding": [
-    -1890,
-    360,
-    1155,
-    930
+    -2460,
+    315,
+    1740,
+    1485
    ],
    "color": "#3f789e",
    "flags": {}
@@ -2040,9 +1948,9 @@
    "title": "H3 conditioning + latent",
    "bounding": [
     -720,
-    360,
-    780,
-    795
+    255,
+    1155,
+    995
    ],
    "color": "#3f7943",
    "flags": {}
@@ -2052,9 +1960,9 @@
    "title": "Sample",
    "bounding": [
     420,
-    360,
+    315,
     675,
-    780
+    790
    ],
    "color": "#a1309b",
    "flags": {}
@@ -2063,12 +1971,72 @@
    "id": 4,
    "title": "Stitch + save",
    "bounding": [
-    1380,
-    360,
-    765,
-    810
+    1080,
+    255,
+    1065,
+    945
    ],
    "color": "#b58b2a",
+   "flags": {}
+  },
+  {
+   "title": "2. Track + crop (per-frame)",
+   "bounding": [
+    -1125,
+    865,
+    390,
+    705
+   ],
+   "color": "#3f789e",
+   "font_size": 24,
+   "flags": {}
+  },
+  {
+   "title": "4. Inject real video -> img2img",
+   "bounding": [
+    -330,
+    315,
+    360,
+    210
+   ],
+   "color": "#3f789e",
+   "font_size": 24,
+   "flags": {}
+  },
+  {
+   "title": "5b. Per-frame denoise (by face size)",
+   "bounding": [
+    60,
+    565,
+    360,
+    345
+   ],
+   "color": "#3f789e",
+   "font_size": 24,
+   "flags": {}
+  },
+  {
+   "title": "8b. Face mask (SAM) - masks the INPUT",
+   "bounding": [
+    1095,
+    672,
+    300,
+    235
+   ],
+   "color": "#3f789e",
+   "font_size": 24,
+   "flags": {}
+  },
+  {
+   "title": "9. Stitch back",
+   "bounding": [
+    1380,
+    315,
+    360,
+    375
+   ],
+   "color": "#3f789e",
+   "font_size": 24,
    "flags": {}
   }
  ],
