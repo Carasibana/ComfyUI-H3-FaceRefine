@@ -866,8 +866,6 @@ Contributions:
 - **[fatemark](https://github.com/fatemark)** — rank-and-index face selection, the numbered face
   preview, and the pluggable identity backends that make crowd tracking work on illustration
   ([#10](https://github.com/Carasibana/ComfyUI-H3-FaceRefine/pull/10))
-- **[HuntingSuccubus](https://github.com/HuntingSuccubus)** — the `frame_count` output
-  ([#9](https://github.com/Carasibana/ComfyUI-H3-FaceRefine/issues/9))
 
 Also builds on:
 
