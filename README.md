@@ -134,7 +134,7 @@ Model lookups go through ComfyUI's `folder_paths`, so anything registered in
 |---|---|---|
 | `face_yolov8m.pt` | `models/ultralytics/bbox/` | [Bingsu/adetailer](https://huggingface.co/Bingsu/adetailer/blob/main/face_yolov8m.pt) |
 | `person_yolov8m-seg.pt` *(optional for the nodes, but both templates ship it wired as `fallback_detector`)* | `models/ultralytics/segm/` | [Bingsu/adetailer](https://huggingface.co/Bingsu/adetailer/blob/main/person_yolov8m-seg.pt) |
-| an anime face detector *(optional, anime and other illustration)* | `models/ultralytics/bbox/` | [deepghs/anime_face_detection](https://huggingface.co/deepghs/anime_face_detection), or Anzhc's face-seg models. `face_yolov8m.pt` will not find anime faces — see [Anime and other non-photographic material](#anime-and-other-non-photographic-material) |
+| an anime face detector *(optional, anime and other illustration)* | `models/ultralytics/bbox/` | [deepghs/anime_face_detection](https://huggingface.co/deepghs/anime_face_detection), or Anzhc's face-seg models. `face_yolov8m.pt` may not find anime faces — see [Anime and other non-photographic material](#anime-and-other-non-photographic-material) |
 | a CLIP Vision model *(optional, only for `identity_model = clip_vision`)* | `models/clip_vision/` | any CLIP Vision model, wired through a `CLIPVisionLoader`. You probably already have one for IPAdapter or Redux |
 | MiniMax H3 diffusion model | `models/diffusion_models/` | [Comfy-Org/MiniMax-H3](https://huggingface.co/Comfy-Org/MiniMax-H3) |
 | Qwen3-VL text encoder | `models/text_encoders/` | [Comfy-Org/MiniMax-H3](https://huggingface.co/Comfy-Org/MiniMax-H3) |
@@ -599,7 +599,7 @@ the tracker publishes on `transform`.
 ### Anime and other non-photographic material
 
 `buffalo_l` is ArcFace trained on photographed faces, and the node reaches it through InsightFace's
-**own** detector (SCRFD, trained on WIDER FACE). On illustration that detector fires on nothing, so
+**own** detector (SCRFD, trained on WIDER FACE). On illustration that detector may struggle to match, so
 there are no candidates to compare and identity matching quietly degrades to continuity. Nothing
 goes visibly wrong — you simply never get the crowd handling.
 
