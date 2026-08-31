@@ -102,6 +102,208 @@ def _best_match(cands: list, ref_emb: np.ndarray):
     return i, sims[i]
 
 
+# ----------------------------------------------------------------------------
+# identity embedding backends
+# ----------------------------------------------------------------------------
+#
+# buffalo_l is ArcFace on photographed faces, and it is reached through InsightFace's
+# OWN detector (SCRFD, trained on WIDER FACE). On illustration that detector fires on
+# nothing, so `embed` returns no candidates at all and identity matching silently
+# degrades to continuity - the failure is invisible rather than wrong. Swapping only the
+# recogniser would not help while the candidates still have to come from SCRFD.
+#
+# So the out-of-domain backends embed THE BOXES THE FACE DETECTOR ALREADY FOUND. The
+# ultralytics model the user picked is the thing that knows where an anime face is, and
+# it is already a node input.
+
+_IDENT_MODES = ["insightface", "clip_vision", "ccip"]
+
+# Context around the face box for the out-of-domain backends. A face detector's box is
+# eyes-to-chin, but hair is most of what distinguishes one illustrated character from
+# another, and both CCIP and CLIP expect a character image rather than a cropped face.
+_IDENT_CROP_FACTOR = 2.0
+_IDENT_CROP_PX = 384
+
+
+def _ident_crop(frame: torch.Tensor, box, out: int = _IDENT_CROP_PX) -> torch.Tensor:
+    """Square, context-padded crop around one face box. frame [1,H,W,C] -> [1,out,out,3]."""
+    _, H, W, _ = frame.shape
+    x0, y0, x1, y1 = float(box[0]), float(box[1]), float(box[2]), float(box[3])
+    cx, cy = (x0 + x1) / 2.0, (y0 + y1) / 2.0
+    side = min(max(x1 - x0, y1 - y0) * _IDENT_CROP_FACTOR, float(min(W, H)))
+    side = max(side, 8.0)
+    x = min(max(cx - side / 2.0, 0.0), max(0.0, W - side))
+    y = min(max(cy - side / 2.0, 0.0), max(0.0, H - side))
+    return _affine_crop(frame, (x, y, side, side), out, out)
+
+
+def _unit_mean(feats) -> np.ndarray:
+    a = np.mean(np.stack(feats), axis=0)
+    n = np.linalg.norm(a)
+    return a / n if n > 0 else a
+
+
+class _InsightFaceEmbedder:
+    """ArcFace via InsightFace, on InsightFace's own aligned detections.
+
+    Left exactly as it was: ArcFace wants the 5-point landmark alignment that app.get()
+    performs, and feeding it a raw box crop measurably degrades it.
+    """
+
+    name = "insightface"
+    default_threshold = 0.28
+    note = ""
+
+    def __init__(self):
+        self.app = _face_recogniser()
+
+    def embed(self, frame, boxes):
+        return _embed_faces(self.app, _to_bgr_u8(frame[0]))
+
+    def embed_reference(self, frame, model, confidence):
+        cands = _embed_faces(self.app, _to_bgr_u8(frame[0]))
+        if not cands:
+            return None
+        j = max(range(len(cands)), key=lambda k: cands[k][0][3] - cands[k][0][1])
+        return cands[j][1]
+
+    def best_match(self, cands, ref):
+        return _best_match(cands, ref)
+
+    def merge(self, feats):
+        return _unit_mean(feats)
+
+
+class _CropEmbedder:
+    """Embeds the face detector's own boxes. Base for the out-of-domain backends."""
+
+    def _features(self, crops: torch.Tensor) -> list:
+        raise NotImplementedError
+
+    def embed(self, frame, boxes):
+        if not boxes:
+            return []
+        crops = torch.cat([_ident_crop(frame, b) for b in boxes], 0)
+        feats = self._features(crops)
+        return [(list(b), f) for b, f in zip(boxes, feats) if f is not None]
+
+    def embed_reference(self, frame, model, confidence):
+        # Locate the face in the reference with the SAME detector the clip uses. If it
+        # finds nothing, embed the whole image - which is what CCIP is trained on anyway.
+        boxes = []
+        try:
+            res = model.predict(_to_bgr_u8(frame[0]), conf=confidence, verbose=False)[0]
+            boxes = res.boxes.xyxy.tolist() if len(res.boxes) else []
+        except Exception:
+            boxes = []
+        if boxes:
+            crop = _ident_crop(frame, max(boxes, key=lambda q: q[3] - q[1]))
+        else:
+            _, H, W, _ = frame.shape
+            crop = _affine_crop(frame, (0.0, 0.0, float(W), float(H)),
+                                _IDENT_CROP_PX, _IDENT_CROP_PX)
+        feats = self._features(crop)
+        return feats[0] if feats else None
+
+    def merge(self, feats):
+        return _unit_mean(feats)
+
+    def best_match(self, cands, ref):
+        return _best_match(cands, ref)
+
+
+class _ClipVisionEmbedder(_CropEmbedder):
+    """ComfyUI's own CLIP vision, wired in from a CLIPVisionLoader. No new dependency,
+    and it is domain-agnostic - anime, 3D, stylised, puppets.
+
+    It describes APPEARANCE rather than identity, so its similarities sit high and close
+    together; the useful threshold is much higher than ArcFace's and is scene-dependent.
+    The report prints the scores it actually saw so the number can be set from evidence.
+    """
+
+    name = "clip_vision"
+    default_threshold = 0.80
+    note = ""
+
+    def __init__(self, clip_vision):
+        if clip_vision is None:
+            raise ValueError(
+                "identity_model='clip_vision' needs a CLIP_VISION model connected to "
+                "identity_clip_vision. Add a CLIPVisionLoader node and wire it in."
+            )
+        self.cv = clip_vision
+
+    def _features(self, crops):
+        out = self.cv.encode_image(crops)
+        emb = getattr(out, "image_embeds", None)
+        if emb is None:
+            emb = out["image_embeds"]
+        e = np.asarray(emb.float().cpu().numpy(), dtype=np.float32)
+        e = e.reshape(e.shape[0], -1)
+        n = np.linalg.norm(e, axis=-1, keepdims=True)
+        return list(e / np.maximum(n, 1e-8))
+
+
+class _CCIPEmbedder(_CropEmbedder):
+    """CCIP - "is this the same anime character?" - the illustration counterpart of
+    ArcFace. Deliberately NOT a declared dependency of this pack: dghs-imgutils pins
+    numpy<2 and pulls opencv-contrib-python, which shadows the OpenCV build ComfyUI
+    ships in exactly the way onnxruntime-gpu shadows onnxruntime. Imported only when
+    this backend is actually selected.
+
+    Its distance comes from a learned metric model, not a dot product, so it cannot
+    share the cosine path. The score below is that distance mapped so that the model's
+    own published threshold lands on 0.5: higher is more alike, 0.5 is the operating
+    point CCIP itself recommends, and raising it makes matching stricter.
+    """
+
+    name = "ccip"
+    default_threshold = 0.5
+
+    def __init__(self):
+        try:
+            from imgutils.metrics import (ccip_batch_differences,
+                                          ccip_batch_extract_features,
+                                          ccip_default_threshold, ccip_merge)
+        except ImportError as exc:
+            raise ImportError(
+                "identity_model='ccip' needs dghs-imgutils, which this pack does not "
+                "install for you (it pins numpy<2 and pulls opencv-contrib-python). "
+                "Install it yourself with:  pip install dghs-imgutils\n"
+                f"({exc})"
+            ) from exc
+        self._extract = ccip_batch_extract_features
+        self._diffs = ccip_batch_differences
+        self._merge = ccip_merge
+        self._t = float(ccip_default_threshold())
+        self.note = f"ccip native distance threshold {self._t:.3f} -> score 0.5"
+
+    def _features(self, crops):
+        from PIL import Image
+
+        arr = (crops[..., :3].clamp(0, 1).cpu().numpy() * 255.0).astype(np.uint8)
+        return list(self._extract([Image.fromarray(a) for a in arr]))
+
+    def best_match(self, cands, ref):
+        if not cands or ref is None:
+            return None, -1.0
+        d = np.asarray(self._diffs([ref] + [f for _, f in cands]))[0, 1:]
+        sims = 1.0 - d / (2.0 * max(self._t, 1e-6))
+        i = int(np.argmax(sims))
+        return i, float(sims[i])
+
+    def merge(self, feats):
+        return self._merge(list(feats))
+
+
+def _make_embedder(mode: str, clip_vision=None):
+    if mode == "ccip":
+        return _CCIPEmbedder()
+    if mode == "clip_vision":
+        return _ClipVisionEmbedder(clip_vision)
+    return _InsightFaceEmbedder()
+
+
 def _iou(a, b) -> float:
     ix0, iy0 = max(a[0], b[0]), max(a[1], b[1])
     ix1, iy1 = min(a[2], b[2]), min(a[3], b[3])
@@ -118,7 +320,7 @@ def _continuity_cost(box, last):
     return d + abs(sz - last[2]) * 2.0
 
 
-def _build_clip_anchor(app, images, model, confidence, max_samples=24):
+def _build_clip_anchor(emb, images, all_boxes, max_samples=24):
     """Average embedding of the subject, taken from the CLIP ITSELF.
 
     A stylised reference image sits in a different domain from rendered video frames -
@@ -129,29 +331,96 @@ def _build_clip_anchor(app, images, model, confidence, max_samples=24):
     Anchoring in-domain fixes that: sample frames where ONE face clearly dominates (no
     ambiguity about who the subject is), and average their embeddings.
     """
-    B = images.shape[0]
+    B = len(all_boxes)
     step = max(1, B // max_samples)
     embs = []
     for i in range(0, B, step):
-        bgr = _to_bgr_u8(images[i])
-        det = model.predict(bgr, conf=confidence, verbose=False)[0]
-        boxes = det.boxes.xyxy.tolist() if len(det.boxes) else []
+        boxes = all_boxes[i]
         if not boxes:
             continue
         heights = sorted((b[3] - b[1] for b in boxes), reverse=True)
         # unambiguous = only one face, or the biggest is clearly the biggest
         if len(heights) > 1 and heights[0] < heights[1] * 1.6:
             continue
-        cands = _embed_faces(app, bgr)
+        # only the dominant box needs embedding - the filter above just established
+        # that it is unambiguously the subject
+        top = max(boxes, key=lambda b: b[3] - b[1])
+        cands = emb.embed(images[i:i + 1], [top])
         if not cands:
             continue
         j = max(range(len(cands)), key=lambda k: cands[k][0][3] - cands[k][0][1])
         embs.append(cands[j][1])
     if not embs:
         return None, 0
-    a = np.mean(np.stack(embs), axis=0)
-    n = np.linalg.norm(a)
-    return (a / n if n > 0 else a), len(embs)
+    return emb.merge(embs), len(embs)
+
+
+def _track_continuity(all_boxes, start_frame: int, start_idx: int) -> list[int]:
+    """Provisional subject track by continuity alone. Index into all_boxes[i], or -1.
+
+    Pure geometry over boxes that are already detected, so it costs nothing, which is
+    what makes it usable as a PRE-pass: it says which box is the subject on every frame
+    before any embedding work happens.
+    """
+    B = len(all_boxes)
+    track = [-1] * B
+    if not (0 <= start_frame < B) or start_idx >= len(all_boxes[start_frame]):
+        return track
+    track[start_frame] = start_idx
+    q = all_boxes[start_frame][start_idx]
+    last = ((q[0] + q[2]) / 2.0, (q[1] + q[3]) / 2.0, q[3] - q[1])
+    for i in range(start_frame + 1, B):
+        boxes = all_boxes[i]
+        if not boxes:
+            continue
+        k = min(range(len(boxes)), key=lambda j: _continuity_cost(boxes[j], last))
+        track[i] = k
+        q = boxes[k]
+        last = ((q[0] + q[2]) / 2.0, (q[1] + q[3]) / 2.0, q[3] - q[1])
+    return track
+
+
+def _anchor_from_track(emb, images, all_boxes, track, max_samples=24, min_face=32.0):
+    """Average embedding of the TRACKED subject, sampled from frames where the tracked
+    box is unambiguous.
+
+    _build_clip_anchor assumes the subject is whoever is biggest. That is the wrong
+    assumption the moment the user names a different one through select/select_index, so
+    when they do, the anchor is built from their pick instead - otherwise identity
+    matching would spend the rest of the clip dragging the crop back onto the dominant
+    face the user deliberately did not choose.
+    """
+    clean = []
+    for i, k in enumerate(track):
+        if k < 0:
+            continue
+        boxes = all_boxes[i]
+        tb = boxes[k]
+        if tb[3] - tb[1] < min_face:          # tiny faces embed badly
+            continue
+        if any(_iou(tb, q) > 0.05 for j, q in enumerate(boxes) if j != k):
+            continue
+        clean.append(i)
+    if not clean:
+        return None, 0
+    step = max(1, len(clean) // max_samples)
+    embs = []
+    for i in clean[::step][:max_samples]:
+        tb = all_boxes[i][track[i]]
+        cands = emb.embed(images[i:i + 1], [tb])
+        if not cands:
+            continue
+        j, best = None, 0.0
+        for k, (bb, _) in enumerate(cands):
+            v = _iou(bb, tb)
+            if v > best:
+                best, j = v, k
+        if j is None or best < 0.3:      # the embedder found other people, not ours
+            continue
+        embs.append(cands[j][1])
+    if not embs:
+        return None, 0
+    return emb.merge(embs), len(embs)
 
 
 def _to_bgr_u8(img: torch.Tensor) -> np.ndarray:
@@ -299,6 +568,157 @@ def _feather_mask(h: int, w: int, feather: int, device, dtype) -> torch.Tensor:
 
 
 # ----------------------------------------------------------------------------
+# subject selection + the index preview
+# ----------------------------------------------------------------------------
+
+# Ranking metrics. Every one is written so that MORE is FIRST under `descending`, which
+# is why "largest" and "most_central" still mean what their names say at the default
+# order while the raw coordinate metrics stay literal.
+_SELECT_MODES = [
+    "largest", "area", "confidence", "most_central",
+    "x1", "x2", "y1", "y2", "center_x", "center_y",
+]
+
+
+def _select_metric(box, conf: float, W: int, H: int, mode: str) -> float:
+    x0, y0, x1, y1 = float(box[0]), float(box[1]), float(box[2]), float(box[3])
+    if mode == "area":
+        return (x1 - x0) * (y1 - y0)
+    if mode == "confidence":
+        return float(conf)
+    if mode == "most_central":
+        # centrality, NOT distance: negated so that higher is nearer the centre and
+        # "most_central" + descending keeps picking the most central face.
+        cx, cy = (x0 + x1) / 2.0, (y0 + y1) / 2.0
+        return -(((cx - W / 2.0) ** 2 + (cy - H / 2.0) ** 2) ** 0.5)
+    if mode == "x1":
+        return x0
+    if mode == "x2":
+        return x1
+    if mode == "y1":
+        return y0
+    if mode == "y2":
+        return y1
+    if mode == "center_x":
+        return (x0 + x1) / 2.0
+    if mode == "center_y":
+        return (y0 + y1) / 2.0
+    return y1 - y0      # "largest": face HEIGHT, the same metric the tracker uses throughout
+
+
+def _rank_boxes(boxes, confs, W: int, H: int, mode: str, order: str) -> list[int]:
+    """Indices of `boxes`, ranked. Position 0 is what select_index 0 picks.
+
+    `descending` puts the HIGHEST value of the metric first, `ascending` the lowest. Ties
+    break on x then y, so two equally-good boxes do not swap ranks between frames.
+    """
+    sign = -1.0 if order == "descending" else 1.0
+    vals = [_select_metric(b, (confs[i] if i < len(confs) else 1.0), W, H, mode)
+            for i, b in enumerate(boxes)]
+    return sorted(range(len(boxes)),
+                  key=lambda k: (sign * vals[k], float(boxes[k][0]), float(boxes[k][1])))
+
+
+# 5x7 digits, drawn straight into the tensor. A bitmap font rather than PIL because the
+# default PIL font is a fixed few pixels tall - unreadable on a 1080p frame - and the
+# sized variants are not available on every Pillow this pack has to run against.
+_GLYPHS = {
+    "0": ("01110", "10001", "10011", "10101", "11001", "10001", "01110"),
+    "1": ("00100", "01100", "00100", "00100", "00100", "00100", "01110"),
+    "2": ("01110", "10001", "00001", "00010", "00100", "01000", "11111"),
+    "3": ("11111", "00010", "00100", "00010", "00001", "10001", "01110"),
+    "4": ("00010", "00110", "01010", "10010", "11111", "00010", "00010"),
+    "5": ("11111", "10000", "11110", "00001", "00001", "10001", "01110"),
+    "6": ("00110", "01000", "10000", "11110", "10001", "10001", "01110"),
+    "7": ("11111", "00001", "00010", "00100", "01000", "01000", "01000"),
+    "8": ("01110", "10001", "10001", "01110", "10001", "10001", "01110"),
+    "9": ("01110", "10001", "10001", "01111", "00001", "00010", "01100"),
+}
+
+
+def _draw_rect(img: torch.Tensor, x0, y0, x1, y1, colour, thickness: int) -> None:
+    """Hollow rectangle on an [H,W,3] frame, clipped to the frame."""
+    H, W, _ = img.shape
+    xa, xb = max(0, min(int(round(x0)), W)), max(0, min(int(round(x1)), W))
+    ya, yb = max(0, min(int(round(y0)), H)), max(0, min(int(round(y1)), H))
+    if xb <= xa or yb <= ya:
+        return
+    t = max(1, min(int(thickness), xb - xa, yb - ya))
+    c = torch.tensor(colour, dtype=img.dtype, device=img.device)
+    img[ya:ya + t, xa:xb] = c
+    img[yb - t:yb, xa:xb] = c
+    img[ya:yb, xa:xa + t] = c
+    img[ya:yb, xb - t:xb] = c
+
+
+def _label_size(text: str, scale: int) -> tuple[int, int]:
+    pad = 2 * scale
+    adv = 6 * scale
+    return (max(0, len(text) * adv - scale) + 2 * pad, 7 * scale + 2 * pad)
+
+
+def _draw_label(img: torch.Tensor, x, y, text: str, scale: int, fg, bg) -> None:
+    """Digits on a filled plate, nudged back inside the frame if they would fall off."""
+    H, W, _ = img.shape
+    bw, bh = _label_size(text, scale)
+    x0 = 0 if bw >= W else max(0, min(int(round(x)), W - bw))
+    y0 = 0 if bh >= H else max(0, min(int(round(y)), H - bh))
+    x1, y1 = min(W, x0 + bw), min(H, y0 + bh)
+    if x1 <= x0 or y1 <= y0:
+        return
+    img[y0:y1, x0:x1] = torch.tensor(bg, dtype=img.dtype, device=img.device)
+    fgc = torch.tensor(fg, dtype=img.dtype, device=img.device)
+    pad, adv = 2 * scale, 6 * scale
+    px0 = x0 + pad
+    for ch in text:
+        rows = _GLYPHS.get(ch)
+        if rows is not None:
+            for r, row in enumerate(rows):
+                for c, on in enumerate(row):
+                    if on != "1":
+                        continue
+                    gx, gy = px0 + c * scale, y0 + pad + r * scale
+                    if gx >= W or gy >= H:
+                        continue
+                    img[gy:min(gy + scale, H), gx:min(gx + scale, W)] = fgc
+        px0 += adv
+
+
+def _index_preview(images: torch.Tensor, all_boxes, all_confs, mode: str, order: str,
+                   limit: int = 32):
+    """One card per face index: the first frame in which that index exists, every box
+    drawn and numbered with its rank, the box for that index highlighted.
+
+    A rank is a per-frame property, not an identity, so there is no way to read
+    select_index off the node itself - this output is how you find out that the person
+    you want is number 2.
+    """
+    B, H, W, _ = images.shape
+    max_faces = max((len(b) for b in all_boxes), default=0)
+    n = min(max_faces, int(limit))
+    thick = max(2, int(round(min(H, W) / 240.0)))
+    scale = max(2, int(round(min(H, W) / 140.0)))
+    _, lh = _label_size("0", scale)
+
+    cards = []
+    for idx in range(n):
+        f = next(i for i in range(B) if len(all_boxes[i]) > idx)
+        img = images[f, ..., :3].clone()
+        ranked = _rank_boxes(all_boxes[f], all_confs[f], W, H, mode, order)
+        for rank, bi in enumerate(ranked):
+            box = all_boxes[f][bi]
+            hit = rank == idx
+            col = (0.0, 1.0, 0.2) if hit else (0.15, 0.45, 1.0)
+            _draw_rect(img, box[0], box[1], box[2], box[3], col, thick * (2 if hit else 1))
+            _draw_label(img, box[0], box[1] - lh, str(rank), scale,
+                        (0.0, 0.0, 0.0) if hit else (1.0, 1.0, 1.0), col)
+        cards.append(img)
+    if not cards:      # no detections anywhere; the caller raises on that separately
+        cards.append(images[0, ..., :3].clone())
+    return torch.stack(cards, 0), max_faces, n
+
+
+# ----------------------------------------------------------------------------
 # 1. track + crop
 # ----------------------------------------------------------------------------
 
@@ -384,14 +804,31 @@ class H3FaceTrackCrop:
                                "where same-domain faces score 0.5-0.7."}),
                 "identity_threshold": ("FLOAT", {"default": 0.28, "min": 0.0, "max": 1.0,
                     "step": 0.01,
-                    "tooltip": "Minimum cosine similarity to accept a face as the reference "
-                               "person. Below this the frame falls back to continuity (nearest "
-                               "to the previous position at a similar size), which is what "
-                               "carries tracking through profiles and partial occlusion where "
-                               "embeddings become unreliable."}),
-                "select": (["largest", "most_central"], {"default": "largest",
-                    "tooltip": "Used only when no identity_reference is connected, and as the "
-                               "first-frame tie-break."}),
+                    "tooltip": "Minimum score to accept a face as the reference person. Below "
+                               "this the frame falls back to continuity (nearest to the "
+                               "previous position at a similar size), which is what carries "
+                               "tracking through profiles and partial occlusion where "
+                               "embeddings become unreliable.\n"
+                               "The scale depends on identity_model. 0.28 suits insightface "
+                               "cosine; clip_vision sits much higher (~0.80) because its "
+                               "similarities are compressed; ccip scores 0.5 at its own "
+                               "published operating point.\n"
+                               "SET 0 to use whichever default the chosen model recommends. "
+                               "The report prints the scores actually seen, so it can be tuned "
+                               "from evidence rather than guessed."}),
+                "select": (_SELECT_MODES, {"default": "largest",
+                    "tooltip": "How the faces in a frame are RANKED. select_order picks the "
+                               "direction and select_index picks one out of the ranking.\n"
+                               "largest / area / confidence: face height, box area, detector "
+                               "score.\n"
+                               "most_central: nearness to the frame centre.\n"
+                               "x1 / x2 / y1 / y2 / center_x / center_y: raw box coordinates - "
+                               "left edge, right edge, top edge, bottom edge, centre. Use "
+                               "x1 with ascending to number faces left to right, y1 with "
+                               "ascending to number them top to bottom.\n"
+                               "Used only when no identity_reference is connected, and only to "
+                               "choose the subject on the first frame that contains the "
+                               "requested index - continuity carries it from there."}),
                 "fallback_detector": (["none"] + _detector_list(), {"default": "none",
                     "tooltip": "Used only on frames where the FACE detector finds nothing "
                                "(subject turned away). A person/body model such as "
@@ -402,14 +839,64 @@ class H3FaceTrackCrop:
                     "tooltip": "Head centre as a multiple of face height below the top of the "
                                "person box. 0.5 puts it half a face-height down, which is about "
                                "right for a head seen from behind."}),
+                # These two sit at the END of the list on purpose: ComfyUI stores widget
+                # values positionally, so inserting next to `select` would shift the two
+                # fallback_* values in every workflow already saved against this node.
+                "select_order": (["descending", "ascending"], {"default": "descending",
+                    "tooltip": "Direction of the select ranking. descending puts the HIGHEST "
+                               "value of the metric at index 0, ascending the lowest.\n"
+                               "largest + descending = biggest face first (the default), "
+                               "largest + ascending = smallest first.\n"
+                               "most_central + descending = most central first, + ascending = "
+                               "furthest from the centre first.\n"
+                               "x1 + ascending = leftmost first, x1 + descending = rightmost "
+                               "first. Same for y1/y2 top and bottom."}),
+                "select_index": ("INT", {"default": 0, "min": 0, "max": 63,
+                    "tooltip": "Which face in that ranking to track. 0 is the first, 1 the "
+                               "second, and so on.\n"
+                               "The subject is locked on the first frame that actually contains "
+                               "this index, so a clip that opens on one face and only later "
+                               "shows a crowd still finds face 1. Frames before that lock-on are "
+                               "interpolated from it and faded out of the composite, the same as "
+                               "a detection dropout; the report counts them. Clamped, with a "
+                               "warning in the report, if the clip never shows that many faces "
+                               "at once. Ignored entirely when identity_reference is connected.\n"
+                               "Connect face_index_preview to a PreviewImage to see which "
+                               "number is who."}),
+                "identity_model": (_IDENT_MODES, {"default": "insightface",
+                    "tooltip": "Which model decides that two faces are the same person.\n"
+                               "insightface: ArcFace/buffalo_l. Photographed human faces. It "
+                               "reaches faces through its OWN detector, which does not fire on "
+                               "illustration - so on anime it finds no candidates at all and "
+                               "tracking quietly falls back to continuity.\n"
+                               "clip_vision: ComfyUI's CLIP vision, wired into "
+                               "identity_clip_vision from a CLIPVisionLoader. No extra install, "
+                               "works on any domain - anime, 3D, stylised - but it describes "
+                               "appearance rather than identity, so two characters with a "
+                               "similar palette can collide.\n"
+                               "ccip: the illustration counterpart of ArcFace, purpose-built "
+                               "for 'same anime character?'. Best on anime. Needs "
+                               "'pip install dghs-imgutils', which this pack deliberately does "
+                               "not install for you - it pins numpy<2 and pulls "
+                               "opencv-contrib-python.\n"
+                               "The last two embed the boxes YOUR detector found, so pair them "
+                               "with an anime face model in the detector slot."}),
+                "identity_clip_vision": ("CLIP_VISION", {
+                    "tooltip": "A CLIP vision model from a CLIPVisionLoader, used only when "
+                               "identity_model is clip_vision. Any of the usual ComfyUI "
+                               "clip_vision checkpoints works; the bigger ViT-L/H models "
+                               "separate characters better than the small ones."}),
             },
         }
 
     # canvas_w / canvas_h MUST be wired into the H3 node's width/height. With canvas_mode
     # on auto the tracker decides the size, and nothing downstream can know it otherwise -
     # the crop and the AV latent would disagree and H3InjectVideoLatent would refuse.
-    RETURN_TYPES = ("IMAGE", "H3FACEXFORM", "IMAGE", "STRING", "INT", "INT")
-    RETURN_NAMES = ("crops", "transform", "preview", "report", "canvas_w", "canvas_h")
+    # face_index_preview is appended rather than slotted next to `preview` because
+    # workflow links are stored by output INDEX - inserting would rewire saved graphs.
+    RETURN_TYPES = ("IMAGE", "H3FACEXFORM", "IMAGE", "STRING", "INT", "INT", "IMAGE")
+    RETURN_NAMES = ("crops", "transform", "preview", "report", "canvas_w", "canvas_h",
+                    "face_index_preview")
     FUNCTION = "run"
     CATEGORY = "MiniMax H3/Face Refine"
     DESCRIPTION = (
@@ -420,7 +907,9 @@ class H3FaceTrackCrop:
     def run(self, images, detector, confidence, crop_factor, canvas_width, canvas_height,
             canvas_mode, smooth_window, size_smooth_window, smooth_method, size_mode,
             select="largest", fallback_detector="none", fallback_head_frac=0.5,
-            identity_reference=None, identity_threshold=0.28, identity_track=True):
+            identity_reference=None, identity_threshold=0.28, identity_track=True,
+            select_order="descending", select_index=0, identity_model="insightface",
+            identity_clip_vision=None):
         model = _load_detector(detector)
         B, H, W, _ = images.shape
 
@@ -430,45 +919,116 @@ class H3FaceTrackCrop:
 
         import comfy.model_management as _mm
 
+        # ---- detect once, keep every box -------------------------------------------
+        # Detection is the expensive part of this node and the boxes themselves are tiny,
+        # so the whole clip is detected up front and cached. Subject selection, the
+        # identity anchor and the index preview then all read the same set instead of
+        # each re-running the detector over the frames they care about.
+        all_boxes: list[list[list[float]]] = []
+        all_confs: list[list[float]] = []
+        for i in range(B):
+            _mm.throw_exception_if_processing_interrupted()
+            res = model.predict(_to_bgr_u8(images[i]), conf=confidence, verbose=False)[0]
+            if len(res.boxes):
+                bx = [[float(v) for v in q] for q in res.boxes.xyxy.tolist()]
+                cf = getattr(res.boxes, "conf", None)
+                all_boxes.append(bx)
+                all_confs.append([float(c) for c in cf.tolist()] if cf is not None
+                                 else [1.0] * len(bx))
+            else:
+                all_boxes.append([])
+                all_confs.append([])
+
+        max_faces = max((len(b) for b in all_boxes), default=0)
+        if max_faces == 0:
+            raise ValueError(
+                "No face detected in any frame. Lower `confidence`, or this clip has no "
+                "usable face and should be skipped."
+            )
+
+        # ---- which face is the subject ---------------------------------------------
+        # select + select_order rank the boxes within a frame; select_index takes one out
+        # of that ranking. The pick happens ONCE, on the first frame that actually
+        # contains the requested index, and continuity carries the subject from there: a
+        # rank is a per-frame property, so re-ranking every frame would hop between people
+        # the moment two of them cross or change size.
+        requested_index = int(select_index)
+        select_index = max(0, min(requested_index, max_faces - 1))
+        first_face = next(i for i in range(B) if all_boxes[i])
+        index_lock = next(i for i in range(B) if len(all_boxes[i]) > select_index)
+        selection_default = (select == "largest" and select_order == "descending"
+                             and select_index == 0)
+        # A user naming a subject outranks the automatic "the biggest face is the subject"
+        # guess, so when they have, the identity anchor is built from THEIR pick instead.
+        selection_leads = (not selection_default) and identity_reference is None
+
         # ---- identity anchor -------------------------------------------------------
         # Without one, "largest" has no idea WHO it is following: it takes the biggest box
         # each frame, so in a crowd it hops subject whenever the framing changes. Observed
         # in testing: a single clip switched subject 4 times.
-        ref_emb, app = None, None
+        ref_emb, embedder = None, None
+        ident_note, ident_scores = "", []
+        ident_threshold = float(identity_threshold)
         n_ident, n_cont, n_conflict = 0, 0, 0
-        multi = False
-        try:
-            probe = model.predict(_to_bgr_u8(images[0]), conf=confidence, verbose=False)[0]
-            multi = len(probe.boxes) > 1
-        except Exception:
-            pass
+        multi = len(all_boxes[0]) > 1 or (selection_leads and max_faces > 1)
 
         if identity_track and (multi or identity_reference is not None):
             try:
-                app = _face_recogniser()
+                embedder = _make_embedder(identity_model, identity_clip_vision)
+                if ident_threshold <= 0.0:
+                    ident_threshold = float(embedder.default_threshold)
                 if identity_reference is not None:
-                    cands = _embed_faces(app, _to_bgr_u8(identity_reference[0]))
-                    if cands:
-                        j = max(range(len(cands)),
-                                key=lambda k: cands[k][0][3] - cands[k][0][1])
-                        ref_emb = cands[j][1]
+                    ref_emb = embedder.embed_reference(identity_reference[:1], model,
+                                                       confidence)
+                    if ref_emb is not None:
                         print("[H3FaceRefine] identity anchor from the supplied reference")
-                if ref_emb is None:
-                    ref_emb, used = _build_clip_anchor(app, images, model, confidence)
+                if ref_emb is None and selection_leads:
+                    # Anchor on the SELECTED subject, followed by continuity. Falling back
+                    # to the clip anchor here would re-anchor on the dominant face, i.e.
+                    # exactly the person select_index was used to avoid, so a failure here
+                    # leaves ref_emb None and the track runs on continuity alone.
+                    seed = _rank_boxes(all_boxes[index_lock], all_confs[index_lock], W, H,
+                                       select, select_order)[select_index]
+                    ref_emb, used = _anchor_from_track(
+                        embedder, images, all_boxes,
+                        _track_continuity(all_boxes, index_lock, seed))
+                    print(f"[H3FaceRefine] identity anchor built from the selected subject "
+                          f"({used} unambiguous frames)" if ref_emb is not None else
+                          "[H3FaceRefine] no clean frames to anchor the selected subject - "
+                          "tracking by continuity alone")
+                elif ref_emb is None:
+                    ref_emb, used = _build_clip_anchor(embedder, images, all_boxes)
                     if ref_emb is not None:
                         print(f"[H3FaceRefine] identity anchor built from the clip itself "
                               f"({used} unambiguous frames)")
             except Exception as exc:
+                # Identity is an assist, not a requirement - a missing backend must not
+                # kill a run that continuity can still track. Surfaced in the report as
+                # well as stdout, because a silent downgrade is the thing that wastes an
+                # evening on a crowd scene.
+                embedder, ref_emb = None, None
+                ident_note = f"{identity_model} unavailable, tracking by continuity: {exc}"
                 print(f"[H3FaceRefine] identity matching unavailable ({exc})")
+
+        # Waiting for a frame that contains select_index only makes sense when the RANKING
+        # is what picks the subject. A usable identity anchor overrules the ranking at
+        # lock-on, so deferring there would discard leading frames identity resolves
+        # perfectly - frames where the subject is often alone, i.e. the most reliable ones
+        # in the clip.
+        ranking_picks = selection_leads or ref_emb is None
+        lock_frame = index_lock if ranking_picks else first_face
 
         last = None   # (cx, cy, size) of the subject on the previous resolved frame
 
         for i in range(B):
             _mm.throw_exception_if_processing_interrupted()
-            frame_bgr = _to_bgr_u8(images[i])
-            res = model.predict(frame_bgr, conf=confidence, verbose=False)[0]
-            boxes = res.boxes.xyxy.tolist() if len(res.boxes) else []
+            boxes = all_boxes[i]
             if not boxes:
+                continue
+            if last is None and i < lock_frame:
+                # Too few faces here to honour select_index. Leaving these frames unresolved
+                # hands them to the same interpolation that covers detection dropouts, which
+                # beats locking onto whoever happens to be alone in the opening shot.
                 continue
 
             b = None
@@ -476,20 +1036,21 @@ class H3FaceTrackCrop:
                 b = boxes[0]
                 n_cont += 1
             elif last is None:
-                # first resolved frame: identity if we have it, else the size/position rule
-                if ref_emb is not None:
-                    cands = _embed_faces(app, frame_bgr)
-                    k, _ = _best_match(cands, ref_emb)
+                # first resolved frame: identity if we have it, else the ranking rule
+                if ref_emb is not None and not selection_leads:
+                    cands = embedder.embed(images[i:i + 1], boxes)
+                    k, score = embedder.best_match(cands, ref_emb)
                     if k is not None:
+                        ident_scores.append(score)
                         b = cands[k][0]
                         n_ident += 1
                 if b is None:
-                    if select == "most_central":
-                        fc = (W / 2.0, H / 2.0)
-                        b = min(boxes, key=lambda q: ((q[0]+q[2])/2 - fc[0]) ** 2
-                                + ((q[1]+q[3])/2 - fc[1]) ** 2)
-                    else:
-                        b = max(boxes, key=lambda q: (q[3] - q[1]))
+                    # Clamped: when identity was in charge the lock frame is only
+                    # guaranteed to hold a face, not to hold select_index of them, and
+                    # insightface can come back empty on a frame the face detector liked.
+                    ranked = _rank_boxes(boxes, all_confs[i], W, H, select, select_order)
+                    b = boxes[ranked[min(select_index, len(ranked) - 1)]]
+                    n_cont += 1
             else:
                 # Continuity first: the nearest box to where the subject was, penalised for
                 # size change. Cheap and correct while people stay separated.
@@ -505,10 +1066,12 @@ class H3FaceTrackCrop:
                 if conflict and ref_emb is not None:
                     n_conflict += 1
                     near = [q for q in boxes if _continuity_cost(q, last) < c0 * 3.0] or boxes
-                    cands = [c for c in _embed_faces(app, frame_bgr)
+                    cands = [c for c in embedder.embed(images[i:i + 1], near)
                              if any(_iou(c[0], q) > 0.3 for q in near)]
-                    k, score = _best_match(cands, ref_emb)
-                    if k is not None and score >= identity_threshold:
+                    k, score = embedder.best_match(cands, ref_emb)
+                    if k is not None:
+                        ident_scores.append(score)
+                    if k is not None and score >= ident_threshold:
                         b = cands[k][0]
                         n_ident += 1
                 if b is None:
@@ -535,11 +1098,18 @@ class H3FaceTrackCrop:
         # Body fallback for frames the face detector missed. Interpolated size feeds the
         # head-position estimate, so size comes from frames where a face WAS measured while
         # position comes from the body actually visible in this frame.
+        #
+        # Keyed on "no face was detected", NOT on "no subject was resolved": the frames the
+        # lock deferral holds back DID have faces, and the body model would re-centre them
+        # on the largest body in shot - usually the very person select_index was used to
+        # avoid - then mark them via_body, which hides them from both the interpolation and
+        # the dropout warning while smoothing that error into the frames after the lock.
+        no_face = np.array([not b for b in all_boxes], dtype=bool)
         sz_seed = _interp_gaps(sz, valid)
-        if fallback_detector != "none" and (~valid).any():
+        if fallback_detector != "none" and no_face.any():
             try:
                 bmodel = _load_detector(fallback_detector)
-                for i in np.nonzero(~valid)[0]:
+                for i in np.nonzero(no_face)[0]:
                     res = bmodel.predict(_to_bgr_u8(images[i]), conf=confidence, verbose=False)[0]
                     if not len(res.boxes):
                         continue
@@ -699,11 +1269,81 @@ class H3FaceTrackCrop:
                 f"crop_factor, or skip this clip if it is close-up throughout."
             )
 
+        # One card per face index, so the number to type into select_index can be read
+        # off a PreviewImage instead of guessed.
+        face_index_preview, max_faces, n_cards = _index_preview(
+            images, all_boxes, all_confs, select, select_order)
+
+        # Frames that had a face but were held back waiting for select_index. They are
+        # interpolated and faded out of the composite like any dropout, so they must be
+        # stated rather than left to look like detection failures.
+        prelock = sum(1 for i in range(lock_frame) if all_boxes[i])
+        idxwarn = ""
+        if requested_index > 0 and not ranking_picks:
+            idxwarn += (
+                f"\n!! select_index={requested_index} was ignored: identity_reference "
+                f"decides the subject when one is connected."
+            )
+        if prelock >= 12:
+            idxwarn += (
+                f"\n!! {prelock} frames before the lock-on contain fewer than "
+                f"{select_index + 1} faces, so they are interpolated from frame {lock_frame} "
+                f"and faded out of the composite. Lower select_index if that stretch matters."
+            )
+        if requested_index != select_index:
+            idxwarn = (
+                f"\n!! select_index={requested_index} is out of range: at most {max_faces} "
+                f"face(s) were ever detected in a single frame, so index {select_index} was "
+                f"used instead."
+            )
+        if n_cards < max_faces:
+            idxwarn += (
+                f"\n!! face_index_preview shows {n_cards} of {max_faces} indices (capped). "
+                f"The higher indices are still selectable."
+            )
+
+        # Identity accounting. The scores are printed because identity_threshold means a
+        # different thing per backend, and a number nobody can calibrate is a number
+        # nobody will touch.
+        if ident_note:
+            identline = f"identity: {ident_note}\n"
+        elif embedder is None:
+            identline = "identity: not used (single face, or identity_track off)\n"
+        else:
+            if ident_scores:
+                scores = (f"  scores min={min(ident_scores):.3f} "
+                          f"mean={sum(ident_scores)/len(ident_scores):.3f} "
+                          f"max={max(ident_scores):.3f}")
+            elif ref_emb is None:
+                scores = "  (no anchor could be built - tracked by continuity alone)"
+            else:
+                scores = "  (anchor built, never consulted - continuity was unambiguous)"
+            identline = (
+                f"identity: {embedder.name}  threshold={ident_threshold:.3f}"
+                f"{' (model default)' if identity_threshold <= 0.0 else ''}"
+                f"{'  [' + embedder.note + ']' if getattr(embedder, 'note', '') else ''}"
+                f"{scores}\n"
+            )
+
+        identwarn = ""
+        if ident_scores and min(ident_scores) >= ident_threshold:
+            identwarn = (
+                f"\n!! every identity score cleared identity_threshold={ident_threshold:.3f}, "
+                f"so it rejected nothing. Lowest seen was {min(ident_scores):.3f}. Raise it, or "
+                f"set identity_threshold to 0 for {embedder.name}'s own default."
+            )
+
         box_jit = float(np.mean([abs(boxes[i][0] - boxes[i-1][0]) + abs(boxes[i][1] - boxes[i-1][1])
                                  for i in range(1, len(boxes))])) if len(boxes) > 1 else 0.0
         report = (
+            f"subject: select={select} {select_order} index={select_index}"
+            f"{'' if ranking_picks else ' (ignored - identity_reference decides)'}, "
+            f"locked on at frame {lock_frame} of {B}"
+            f"{f', {prelock} earlier frames interpolated' if prelock else ''}\n"
+            f"faces: max {max_faces} in one frame; face_index_preview has {n_cards} card(s)\n"
             f"tracking: {n_cont} by continuity, {n_conflict} ambiguous "
             f"({n_ident} resolved by face identity)\n"
+            f"{identline}"
             f"frames={B}  face={found} ({found/B*100:.0f}%)  "
             f"body-fallback={int(via_body.sum())}  interpolated={B-int(known.sum())}\n"
             f"face height  min={sz.min():.0f}px  mean={sz.mean():.0f}px  max={sz.max():.0f}px\n"
@@ -716,14 +1356,15 @@ class H3FaceTrackCrop:
             f"box movement {box_jit:.2f} px/frame (sub-pixel float boxes - no integer rounding)\n"
             f"dropout runs: {len(runs)}  longest={longest_gap} frames ({longest_gap/24.0:.1f}s "
             f"at 24fps)  -> composite fades out across these"
-            f"{gapwarn}{warn}"
+            f"{identwarn}{idxwarn}{gapwarn}{warn}"
         )
         # Always print. The report is also returned as an output, but that output is
         # usually left unconnected, and then a run gives no account of how it tracked -
         # which is exactly the information needed to tell whether identity matching did
         # any work on a crowd scene.
         print("[H3FaceRefine] " + report.replace("\n", "\n[H3FaceRefine] "))
-        return (crops, transform, preview, report, int(canvas_width), int(canvas_height))
+        return (crops, transform, preview, report, int(canvas_width), int(canvas_height),
+                face_index_preview)
 
 
 # ----------------------------------------------------------------------------

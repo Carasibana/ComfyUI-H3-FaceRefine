@@ -1476,7 +1476,7 @@
    ],
    "size": [
     360,
-    495
+    600
    ],
    "flags": {},
    "order": 19,
@@ -1533,6 +1533,11 @@
      "links": [
       38
      ]
+    },
+    {
+     "name": "face_index_preview",
+     "type": "IMAGE",
+     "links": []
     }
    ],
    "title": "2. Track + crop  (per-frame)",
@@ -1554,7 +1559,10 @@
       "identity_threshold": true,
       "select": true,
       "fallback_detector": true,
-      "fallback_head_frac": true
+      "fallback_head_frac": true,
+      "select_order": true,
+      "select_index": true,
+      "identity_model": true
      },
      "version": "7.8",
      "input_ue_unconnectable": {}
@@ -1575,7 +1583,10 @@
     0.28,
     "largest",
     "segm\\person_yolov8m-seg.pt",
-    0.5
+    0.5,
+    "descending",
+    0,
+    "insightface"
    ],
    "color": "#322",
    "bgcolor": "#533"
