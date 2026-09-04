@@ -1984,6 +1984,7 @@ class H3FaceTrackCrop:
         else:
             lockdesc = f"locked on at frame {lock_frame} of {B}"
 
+        render_line = f"rendering: {K} of {B} frames  [{drop_note}]\n" if drop_note else ""
         report = (
             f"subject: {'from face_pick, one per shot' if forced else _sel_desc}"
             f"{'' if (ranking_picks or forced) else ' (ignored - identity_reference decides)'}, "
@@ -1996,7 +1997,7 @@ class H3FaceTrackCrop:
             f"tracking: {n_cont} by continuity, {n_conflict} ambiguous "
             f"({n_ident} resolved by face identity)\n"
             f"{identline}"
-            f"{f'rendering: {K} of {B} frames  [{drop_note}]\n' if drop_note else ''}"
+            f"{render_line}"
             f"frames={B}  face={found} ({found/B*100:.0f}%)  "
             f"body-fallback={int(via_body.sum())}  interpolated={B-int(known.sum())}\n"
             f"face height  min={sz.min():.0f}px  mean={sz.mean():.0f}px  max={sz.max():.0f}px\n"
