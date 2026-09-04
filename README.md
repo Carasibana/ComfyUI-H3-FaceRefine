@@ -866,6 +866,9 @@ Contributions:
 - **[fatemark](https://github.com/fatemark)** — rank-and-index face selection, the numbered face
   preview, and the pluggable identity backends that make crowd tracking work on illustration
   ([#10](https://github.com/Carasibana/ComfyUI-H3-FaceRefine/pull/10))
+- **[Gourieff](https://github.com/Gourieff)** — fixed a `SyntaxError` that stopped `nodes.py`
+  importing on Python older than 3.12
+  ([#12](https://github.com/Carasibana/ComfyUI-H3-FaceRefine/pull/12))
 
 Also builds on:
 
