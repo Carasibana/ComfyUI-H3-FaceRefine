@@ -583,7 +583,8 @@ def _to_bgr_u8_batch(imgs: torch.Tensor) -> np.ndarray:
 
 
 def _detect_clip(get_model, images: torch.Tensor, confidence: float,
-                 cut_det=None, cut_tc=None, batch: int = _DETECT_BATCH):
+                 cut_det=None, cut_tc=None, batch: int = _DETECT_BATCH,
+                 on_batch=None, check_interrupt: bool = True):
     """Detect faces across a whole clip -> (all_boxes, all_confs, cuts).
 
     Batched for the same reason H3FaceStitch is: the per-frame Python loop this
@@ -606,6 +607,16 @@ def _detect_clip(get_model, images: torch.Tensor, confidence: float,
 
     all_boxes / all_confs come back per frame, one entry per frame in order,
     exactly as the per-frame loop built them.
+
+    `on_batch(done, total)` is called once per batch before it runs, for callers
+    that show progress. Granularity is a batch, not a frame - but a batch is
+    also ~16x faster than it used to be, so the updates keep arriving at about
+    the same rate on the clock, which is what a progress bar is judged by.
+
+    `check_interrupt=False` drops the queue interrupt check, for callers that
+    are not the queue. ComfyUI's interrupt flag stays set after a cancelled
+    render until the next prompt starts, so an off-queue caller that honoured it
+    would abort for a cancellation that was never aimed at it.
     """
     import comfy.model_management as _mm
 
@@ -615,7 +626,10 @@ def _detect_clip(get_model, images: torch.Tensor, confidence: float,
     cuts: list = []
 
     for start in range(0, B, batch):
-        _mm.throw_exception_if_processing_interrupted()
+        if check_interrupt:
+            _mm.throw_exception_if_processing_interrupted()
+        if on_batch is not None:
+            on_batch(start, B)
         stop = min(start + batch, B)
         bgr = _to_bgr_u8_batch(images[start:stop])
         frames = [bgr[k] for k in range(stop - start)]
