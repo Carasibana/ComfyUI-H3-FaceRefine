@@ -170,7 +170,7 @@ def _scan(params):
     model = N._load_detector(str(params.get("detector")))
     conf = float(params.get("confidence") or 0.35)
 
-    cuts, cut_det, cut_tc = [], None, None
+    cut_det, cut_tc = None, None
     if str(params.get("cut_detection", "none")) != "none":
         try:
             cut_det, cut_tc = N._make_cut_detector(float(params.get("cut_threshold") or 3.0))
@@ -180,26 +180,16 @@ def _scan(params):
     det_name = os.path.basename(str(params.get("detector") or "")) or "the detector"
     work = (f"faces ({det_name})" if cut_det is None
             else f"faces ({det_name}) and cuts (PySceneDetect)")
-    step = max(1, B // 50)          # ~50 updates, not one per frame
+    def _tick(done, total):
+        _progress(f"Scanning for {work}", done, total, f"frame {done} of {total}")
 
-    all_boxes, all_confs = [], []
-    for i in range(B):
-        if i % step == 0:
-            _progress(f"Scanning for {work}", i, B, f"frame {i} of {B}")
-        bgr = N._to_bgr_u8(images[i])
-        if cut_det is not None:
-            for t in cut_det.process_frame(cut_tc(i, fps=24.0), bgr):
-                cuts.append(int(t.get_frames()))
-        r = model.predict(bgr, conf=conf, verbose=False)[0]
-        if len(r.boxes):
-            bx = [[float(v) for v in q] for q in r.boxes.xyxy.tolist()]
-            cf = getattr(r.boxes, "conf", None)
-            all_boxes.append(bx)
-            all_confs.append([float(c) for c in cf.tolist()] if cf is not None
-                             else [1.0] * len(bx))
-        else:
-            all_boxes.append([])
-            all_confs.append([])
+    # Same batched pass the nodes run. The detector is already loaded here - this
+    # path always detects - so the callable just hands it over.
+    # check_interrupt is off: this runs on an HTTP thread, not the queue, and the
+    # interrupt flag left behind by a cancelled render is not aimed at it.
+    all_boxes, all_confs, cuts = N._detect_clip(
+        lambda: model, images, conf, cut_det, cut_tc,
+        on_batch=_tick, check_interrupt=False)
 
     if max((len(b) for b in all_boxes), default=0) == 0:
         raise ValueError("No face detected in any frame. Lower confidence, or use a "
